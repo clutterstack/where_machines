@@ -6,9 +6,9 @@ defmodule Mix.Tasks.BuildStructs do
   # mix build_structs "spec.json" "generated_structs.ex"
 
   def run(args) do
-    [infile, outfile] = args
+    [infile, outdir] = args
     IO.inspect(args, label: "args")
-    StructGenerator.generate_structs(infile, outfile)
+    StructGenerator.generate_structs(infile, outdir)
     # |> File.write(new_file_path, [:write])
   end
 end

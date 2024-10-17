@@ -13,7 +13,8 @@ defmodule StructGenerator do
   end
   """
 
-  def generate_structs(input_file, output_file) do
+  def generate_structs(input_file, output_dir) do
+    File.mkdir_p(output_dir)
     schemas = input_file
           |> File.read!()
           |> Jason.decode!()
@@ -22,12 +23,23 @@ defmodule StructGenerator do
           |> get_in(["components", "schemas"])
           # |> IO.inspect(label: "schemas")
 
-    struct_modules = schemas
+    schemas
           |> Enum.filter(fn {_, schema} -> Map.has_key?(schema, "properties") end)
-          |> Enum.map(fn {name, schema} -> generate_struct("FlyMachinesApi.#{nice_struct_name(name)}", schema, schemas) end)
-          |> Enum.join("\n\n")
+          |> Enum.each(fn {name, schema} ->
+            module_name = "FlyMachinesApi.#{nice_struct_name(name)}"
+            struct_content = generate_struct(module_name, schema, schemas)
+            write_struct_to_file(module_name, struct_content, output_dir)
+          end)
+  end
 
-    File.write!(output_file, struct_modules)
+  defp write_struct_to_file(module_name, struct_content, output_dir) do
+    file_name = module_name
+                |> String.split(".")
+                |> List.last()
+                |> Macro.underscore()
+                |> Kernel.<>(".ex")
+    file_path = Path.join(output_dir, file_name)
+    File.write!(file_path, struct_content)
   end
 
   defp nice_struct_name(str) do
