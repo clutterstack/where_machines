@@ -20,7 +20,7 @@ defmodule MachinesApiToEcto do
     changeset = get_changeset(schema, all_schemas)
 
     """
-    defmodule FlyMachinesApi.Schemas.#{name} do
+    defmodule FlyApi.#{name} do
       use Ecto.Schema
       import Ecto.Changeset
 
@@ -45,7 +45,7 @@ defmodule MachinesApiToEcto do
     |> Enum.map(fn {name, prop} ->
       type = get_type(prop, all_schemas) |> IO.inspect(label: "Name is #{name}. is the type a normal type or a schema??")
       cond do
-        String.starts_with?(type, "FlyMachinesApi.Schemas.") ->
+        String.starts_with?(type, "FlyApi.") ->
           "embeds_one :#{sanitize_field_name(name)}, #{type}"
         is_array_of_refs?(prop) ->
           ref_type = get_module_name(prop["items"]["$ref"])
@@ -115,9 +115,19 @@ end
 
   defp get_field_atoms(schema, all_schemas) do
     get_properties(schema, all_schemas)
-    |> Map.keys()
-    |> Enum.map(&":#{sanitize_field_name(&1)}")
+    |> Enum.reject(fn {name, prop} -> is_embed?(prop, all_schemas) end)
+    |> Enum.map(fn {name, _} -> ":#{sanitize_field_name(name)}" end)
     |> Enum.join(", ")
+  end
+
+  defp is_embed?(prop, all_schemas) do
+    cond do
+      Map.has_key?(prop, "$ref") -> true
+      Map.has_key?(prop, "allOf") -> true
+      is_array_of_refs?(prop) -> true
+      Map.has_key?(prop, "type") && prop["type"] == "object" -> true
+      true -> false
+    end
   end
 
   defp get_changeset(schema, all_schemas) do
@@ -200,7 +210,7 @@ end
     ref
     |> String.replace("#/components/schemas/", "")
     |> sanitize_name()
-    |> (fn name -> "FlyMachinesApi.Schemas.#{name}" end).()
+    |> (fn name -> "FlyApi.#{name}" end).()
   end
   defp get_module_name(_), do: "UnknownSchema"
 

@@ -18,12 +18,22 @@ List apps in personal org
 @doc """
 Run a new Machine
 """
-  def create_machine(appname, params \\ %{}) do
+  def create_machine(appname, json_body \\ %{}) do
+    IO.inspect(json_body, label: "json_body")
     # Need to validate the params. They have to be a map or struct, and I think
     # config must be required!
-    {:ok, api_response} = FlyMachines.machine_create(appname, params)
-    Logger.info("HEY OVER HERE #{api_response.status}")
-    Logger.info("The Machine ID: #{api_response.body["id"]}")
+    decoded_body = Jason.decode!(json_body) |> IO.inspect(label: "argh")
+    body_changeset = FlyApi.CreateMachineRequest.changeset(%FlyApi.CreateMachineRequest{}, decoded_body)
+    |> IO.inspect(label: "body_changeset")
+    if body_changeset.valid? do
+      # Valid JSON data; send the request
+      {:ok, api_response} = FlyMachines.machine_create(appname, json_body)
+      Logger.info("HEY OVER HERE #{api_response.status}")
+      Logger.info("The Machine ID: #{api_response.body["id"]}")
+    else
+      # Handle errors
+      Logger.info("body_changeset wasn't a valid CreateMachineRequest")
+    end
   end
 
 @doc """
@@ -56,7 +66,8 @@ def run_min_config do
       image: "registry.fly.io/where:debian-nano"
     }
   }
-  create_machine(appname, mach_params)
+  encoded_params = Jason.encode!(mach_params)
+  create_machine(appname, encoded_params)
 end
 
 end
