@@ -1,12 +1,18 @@
 defmodule MachinesApiToEcto do
+
+
   def convert(input_file, output_dir) do
     File.mkdir_p(output_dir)
+    spec = input_file |> File.read!() |> Jason.decode!()
+
+    request_schemas = get_request_schemas(spec)
+
     schemas =
-      input_file
-      |> File.read!()
-      |> Jason.decode!()
+      spec
       |> get_in(["components", "schemas"])
-      |> Enum.filter(fn {_, schema} -> is_map(schema) end)
+      |> Enum.filter(fn {name, schema} ->
+        is_map(schema) and name in request_schemas
+      end)
       |> Map.new()
 
     schemas
@@ -16,6 +22,20 @@ defmodule MachinesApiToEcto do
       File.write!(file_path, content)
     end)
   end
+
+
+defp get_request_schemas(spec) do
+  spec["paths"]
+  |> Enum.flat_map(fn {_path, path_item} ->
+    path_item
+    |> Enum.flat_map(fn {_method, operation} ->
+      get_in(operation, ["requestBody", "content", "application/json", "schema", "$ref"])
+      |> List.wrap()
+      |> Enum.map(&String.replace(&1, "#/components/schemas/", ""))
+    end)
+  end)
+  |> MapSet.new()
+end
 
   defp create_schema(name, schema, all_schemas) do
     fields = get_fields(schema, all_schemas)
@@ -169,6 +189,15 @@ defmodule MachinesApiToEcto do
     name = ref |> String.replace("#/components/schemas/", "")
     Map.get(all_schemas, name, %{})
   end
+
+## Claude suggested this then adapting all other functions
+## (like get_type) to
+## handle the case where the reference doesn't exist?
+## Not sure.
+  # defp get_ref_schema(ref, all_schemas) do
+  #   name = ref |> String.replace("#/components/schemas/", "")
+  #   Map.get(all_schemas, name)
+  # end
 
   defp get_module_name(ref) when is_binary(ref) do
     ref
