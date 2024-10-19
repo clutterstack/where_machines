@@ -4,7 +4,7 @@ defmodule FlyMachinesApi.Schemas.ListAppsResponse do
 
   @primary_key false
   embedded_schema do
-    field :apps, {:array, FlyMachinesApi.Schemas.ListApp}
+    embeds_many :apps, FlyMachinesApi.Schemas.ListApp
     field :total_apps, :integer
   end
 

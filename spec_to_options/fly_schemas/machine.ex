@@ -4,10 +4,10 @@ defmodule FlyMachinesApi.Schemas.Machine do
 
   @primary_key false
   embedded_schema do
-    field :checks, {:array, FlyMachinesApi.Schemas.CheckStatus}
+    embeds_many :checks, FlyMachinesApi.Schemas.CheckStatus
     embeds_one :config, FlyMachinesApi.Schemas.FlyMachineConfig
     field :created_at, :string
-    field :events, {:array, FlyMachinesApi.Schemas.MachineEvent}
+    embeds_many :events, FlyMachinesApi.Schemas.MachineEvent
     field :host_status, :string
     field :id, :string
     embeds_one :image_ref, FlyMachinesApi.Schemas.ImageRef

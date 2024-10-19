@@ -7,7 +7,7 @@ defmodule FlyMachinesApi.Schemas.ProcessStat do
     field :command, :string
     field :cpu, :integer
     field :directory, :string
-    field :listen_sockets, {:array, FlyMachinesApi.Schemas.ListenSocket}
+    embeds_many :listen_sockets, FlyMachinesApi.Schemas.ListenSocket
     field :pid, :integer
     field :rss, :integer
     field :rtime, :integer

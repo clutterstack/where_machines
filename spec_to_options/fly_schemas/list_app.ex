@@ -7,7 +7,7 @@ defmodule FlyMachinesApi.Schemas.ListApp do
     field :id, :string
     field :machine_count, :integer
     field :name, :string
-    field :network, :any
+    field :network, :string
   end
 
   def changeset(schema, attrs) do

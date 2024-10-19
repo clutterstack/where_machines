@@ -5,24 +5,24 @@ defmodule FlyMachinesApi.Schemas.FlyMachineConfig do
   @primary_key false
   embedded_schema do
     field :auto_destroy, :boolean
-    field :checks, :any
+    field :checks, :string
     field :disable_machine_autostart, :boolean
     embeds_one :dns, FlyMachinesApi.Schemas.FlyDNSConfig
-    field :env, :any
-    field :files, {:array, FlyMachinesApi.Schemas.FlyFile}
+    field :env, :string
+    embeds_many :files, FlyMachinesApi.Schemas.FlyFile
     embeds_one :guest, FlyMachinesApi.Schemas.FlyMachineGuest
     field :image, :string
     embeds_one :init, FlyMachinesApi.Schemas.FlyMachineInit
-    field :metadata, :any
+    field :metadata, :string
     embeds_one :metrics, FlyMachinesApi.Schemas.FlyMachineMetrics
-    field :mounts, {:array, FlyMachinesApi.Schemas.FlyMachineMount}
-    field :processes, {:array, FlyMachinesApi.Schemas.FlyMachineProcess}
+    embeds_many :mounts, FlyMachinesApi.Schemas.FlyMachineMount
+    embeds_many :processes, FlyMachinesApi.Schemas.FlyMachineProcess
     embeds_one :restart, FlyMachinesApi.Schemas.FlyMachineRestart
     field :schedule, :string
-    field :services, {:array, FlyMachinesApi.Schemas.FlyMachineService}
+    embeds_many :services, FlyMachinesApi.Schemas.FlyMachineService
     field :size, :string
     field :standbys, {:array, :string}
-    field :statics, {:array, FlyMachinesApi.Schemas.FlyStatic}
+    embeds_many :statics, FlyMachinesApi.Schemas.FlyStatic
     embeds_one :stop_config, FlyMachinesApi.Schemas.FlyStopConfig
   end
 

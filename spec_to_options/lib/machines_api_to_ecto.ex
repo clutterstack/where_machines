@@ -15,33 +15,6 @@ defmodule MachinesApiToEcto do
     end)
   end
 
-
-  defp traverse_schema_refs(schemas, all_schemas) do
-    new_schemas = schemas
-      |> Enum.flat_map(fn schema ->
-        IO.inspect(schema, label: "schema?")
-        case all_schemas[schema] do
-          %{"properties" => props} ->
-            props
-            |> Map.values()
-            |> Enum.flat_map(&get_nested_refs/1)
-          _ -> []
-        end
-      end)
-      |> MapSet.new()
-      |> MapSet.union(schemas)  # schemas is already a MapSet
-
-    if MapSet.size(new_schemas) > MapSet.size(schemas) do
-      traverse_schema_refs(new_schemas, all_schemas)
-    else
-      new_schemas  # Return the MapSet directly
-    end
-  end
-
-defp get_nested_refs(%{"$ref" => ref}), do: [String.replace(ref, "#/components/schemas/", "")]
-defp get_nested_refs(%{"items" => %{"$ref" => ref}}), do: [String.replace(ref, "#/components/schemas/", "")]
-defp get_nested_refs(_), do: []
-
   defp create_schema(name, schema, all_schemas) do
     fields = get_fields(schema, all_schemas)
     changeset = get_changeset(schema, all_schemas)
@@ -71,15 +44,21 @@ defp get_nested_refs(_), do: []
     properties
     |> Enum.map(fn {name, prop} ->
       type = get_type(prop, all_schemas) |> IO.inspect(label: "Name is #{name}. is the type a normal type or a schema??")
-      if String.starts_with?(type, "FlyMachinesApi.Schemas.") do
-        "embeds_one :#{sanitize_field_name(name)}, #{type}"
-      else
-        "field :#{sanitize_field_name(name)}, #{type}"
+      cond do
+        String.starts_with?(type, "FlyMachinesApi.Schemas.") ->
+          "embeds_one :#{sanitize_field_name(name)}, #{type}"
+        is_array_of_refs?(prop) ->
+          ref_type = get_module_name(prop["items"]["$ref"])
+          "embeds_many :#{sanitize_field_name(name)}, #{ref_type}"
+        true ->
+          "field :#{sanitize_field_name(name)}, #{type}"
       end
     end)
     |> Enum.join("\n    ")
   end
 
+  defp is_array_of_refs?(%{"type" => "array", "items" => %{"$ref" => _}}), do: true
+  defp is_array_of_refs?(_), do: false
 
   defp get_properties(%{"allOf" => [%{"$ref" => ref}]}, all_schemas) do
     get_ref_schema(ref, all_schemas)
@@ -127,10 +106,10 @@ defp get_type(prop, all_schemas) do
         "boolean" -> ":boolean"
         "array" -> "{:array, #{get_type(prop["items"], all_schemas)}}"
         "object" ->
-          if Map.has_key?(prop, "properties"), do: ":map", else: ":any"
-        _ -> ":any"
+          if Map.has_key?(prop, "properties"), do: ":map", else: ":string"
+        _ -> ":string" # if type is unknown
       end
-    true -> ":any"
+    true -> ":map" # if there's no such key. Could change this to string I suppose, or error?
   end
 end
 

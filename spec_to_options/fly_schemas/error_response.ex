@@ -4,7 +4,7 @@ defmodule FlyMachinesApi.Schemas.ErrorResponse do
 
   @primary_key false
   embedded_schema do
-    field :details, :any
+    field :details, :string
     field :error, :string
     embeds_one :status, FlyMachinesApi.Schemas.MainStatusCode
   end

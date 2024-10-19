@@ -5,7 +5,7 @@ defmodule FlyMachinesApi.Schemas.FlyMachineCheck do
   @primary_key false
   embedded_schema do
     embeds_one :grace_period, FlyMachinesApi.Schemas.FlyDuration
-    field :headers, {:array, FlyMachinesApi.Schemas.FlyMachineHTTPHeader}
+    embeds_many :headers, FlyMachinesApi.Schemas.FlyMachineHTTPHeader
     embeds_one :interval, FlyMachinesApi.Schemas.FlyDuration
     field :kind, :string
     field :method, :string

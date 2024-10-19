@@ -4,11 +4,11 @@ defmodule FlyMachinesApi.Schemas.FlyDNSConfig do
 
   @primary_key false
   embedded_schema do
-    field :dns_forward_rules, {:array, FlyMachinesApi.Schemas.FlyDnsForwardRule}
+    embeds_many :dns_forward_rules, FlyMachinesApi.Schemas.FlyDnsForwardRule
     field :hostname, :string
     field :hostname_fqdn, :string
     field :nameservers, {:array, :string}
-    field :options, {:array, FlyMachinesApi.Schemas.FlyDnsOption}
+    embeds_many :options, FlyMachinesApi.Schemas.FlyDnsOption
     field :searches, {:array, :string}
     field :skip_registration, :boolean
   end
