@@ -4,9 +4,9 @@ defmodule FlyMachinesApi.Schemas.ErrorResponse do
 
   @primary_key false
   embedded_schema do
-    field :details, {:embed, UnknownSchema}
+    field :details, :any
     field :error, :string
-    field :status, {:embed, FlyMachinesApi.Schemas.MainStatusCode}
+    embeds_one :status, FlyMachinesApi.Schemas.MainStatusCode
   end
 
   def changeset(schema, attrs) do

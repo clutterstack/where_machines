@@ -4,14 +4,14 @@ defmodule FlyMachinesApi.Schemas.Machine do
 
   @primary_key false
   embedded_schema do
-    field :checks, {:array, {:embed, FlyMachinesApi.Schemas.CheckStatus}}
-    field :config, {:embed, FlyMachinesApi.Schemas.FlyMachineConfig}
+    field :checks, {:array, FlyMachinesApi.Schemas.CheckStatus}
+    embeds_one :config, FlyMachinesApi.Schemas.FlyMachineConfig
     field :created_at, :string
-    field :events, {:array, {:embed, FlyMachinesApi.Schemas.MachineEvent}}
+    field :events, {:array, FlyMachinesApi.Schemas.MachineEvent}
     field :host_status, :string
     field :id, :string
-    field :image_ref, {:embed, FlyMachinesApi.Schemas.ImageRef}
-    field :incomplete_config, {:embed, FlyMachinesApi.Schemas.FlyMachineConfig}
+    embeds_one :image_ref, FlyMachinesApi.Schemas.ImageRef
+    embeds_one :incomplete_config, FlyMachinesApi.Schemas.FlyMachineConfig
     field :instance_id, :string
     field :name, :string
     field :nonce, :string

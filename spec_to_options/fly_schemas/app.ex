@@ -6,7 +6,7 @@ defmodule FlyMachinesApi.Schemas.App do
   embedded_schema do
     field :id, :string
     field :name, :string
-    field :organization, {:embed, FlyMachinesApi.Schemas.Organization}
+    embeds_one :organization, FlyMachinesApi.Schemas.Organization
     field :status, :string
   end
 

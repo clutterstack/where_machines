@@ -5,7 +5,7 @@ defmodule FlyMachinesApi.Schemas.MachineEvent do
   @primary_key false
   embedded_schema do
     field :id, :string
-    field :request, {:embed, UnknownSchema}
+    field :request, :any
     field :source, :string
     field :status, :string
     field :timestamp, :integer

@@ -6,11 +6,11 @@ defmodule FlyMachinesApi.Schemas.FlyMachineProcess do
   embedded_schema do
     field :cmd, {:array, :string}
     field :entrypoint, {:array, :string}
-    field :env, {:embed, UnknownSchema}
-    field :env_from, {:array, {:embed, FlyMachinesApi.Schemas.FlyEnvFrom}}
+    field :env, :any
+    field :env_from, {:array, FlyMachinesApi.Schemas.FlyEnvFrom}
     field :exec, {:array, :string}
     field :ignore_app_secrets, :boolean
-    field :secrets, {:array, {:embed, FlyMachinesApi.Schemas.FlyMachineSecret}}
+    field :secrets, {:array, FlyMachinesApi.Schemas.FlyMachineSecret}
     field :user, :string
   end
 

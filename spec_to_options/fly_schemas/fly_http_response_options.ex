@@ -4,7 +4,7 @@ defmodule FlyMachinesApi.Schemas.FlyHTTPResponseOptions do
 
   @primary_key false
   embedded_schema do
-    field :headers, {:embed, UnknownSchema}
+    field :headers, :any
     field :pristine, :boolean
   end
 

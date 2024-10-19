@@ -5,37 +5,42 @@ defmodule MachinesApiToEcto do
     File.mkdir_p(output_dir)
     spec = input_file |> File.read!() |> Jason.decode!()
 
-    request_schemas = get_request_schemas(spec)
+    all_schemas = get_in(spec, ["components", "schemas"])
 
-    schemas =
-      spec
-      |> get_in(["components", "schemas"])
-      |> Enum.filter(fn {name, schema} ->
-        is_map(schema) and name in request_schemas
-      end)
-      |> Map.new()
-
-    schemas
+    all_schemas
     |> Enum.each(fn {name, schema} ->
-      content = create_schema(sanitize_name(name), schema, schemas)
+      content = create_schema(sanitize_name(name), schema, all_schemas)
       file_path = Path.join(output_dir, "#{Macro.underscore(sanitize_name(name))}.ex")
       File.write!(file_path, content)
     end)
   end
 
 
-defp get_request_schemas(spec) do
-  spec["paths"]
-  |> Enum.flat_map(fn {_path, path_item} ->
-    path_item
-    |> Enum.flat_map(fn {_method, operation} ->
-      get_in(operation, ["requestBody", "content", "application/json", "schema", "$ref"])
-      |> List.wrap()
-      |> Enum.map(&String.replace(&1, "#/components/schemas/", ""))
-    end)
-  end)
-  |> MapSet.new()
-end
+  defp traverse_schema_refs(schemas, all_schemas) do
+    new_schemas = schemas
+      |> Enum.flat_map(fn schema ->
+        IO.inspect(schema, label: "schema?")
+        case all_schemas[schema] do
+          %{"properties" => props} ->
+            props
+            |> Map.values()
+            |> Enum.flat_map(&get_nested_refs/1)
+          _ -> []
+        end
+      end)
+      |> MapSet.new()
+      |> MapSet.union(schemas)  # schemas is already a MapSet
+
+    if MapSet.size(new_schemas) > MapSet.size(schemas) do
+      traverse_schema_refs(new_schemas, all_schemas)
+    else
+      new_schemas  # Return the MapSet directly
+    end
+  end
+
+defp get_nested_refs(%{"$ref" => ref}), do: [String.replace(ref, "#/components/schemas/", "")]
+defp get_nested_refs(%{"items" => %{"$ref" => ref}}), do: [String.replace(ref, "#/components/schemas/", "")]
+defp get_nested_refs(_), do: []
 
   defp create_schema(name, schema, all_schemas) do
     fields = get_fields(schema, all_schemas)
@@ -60,10 +65,18 @@ end
     """
   end
 
+
   defp get_fields(schema, all_schemas) do
     properties = get_properties(schema, all_schemas)
     properties
-    |> Enum.map(fn {name, prop} -> "field :#{sanitize_field_name(name)}, #{get_type(prop, all_schemas)}" end)
+    |> Enum.map(fn {name, prop} ->
+      type = get_type(prop, all_schemas) |> IO.inspect(label: "Name is #{name}. is the type a normal type or a schema??")
+      if String.starts_with?(type, "FlyMachinesApi.Schemas.") do
+        "embeds_one :#{sanitize_field_name(name)}, #{type}"
+      else
+        "field :#{sanitize_field_name(name)}, #{type}"
+      end
+    end)
     |> Enum.join("\n    ")
   end
 
@@ -90,31 +103,36 @@ end
   end
 
   defp get_type(%{"allOf" => [%{"$ref" => ref}]}, _all_schemas) do
-    "{:embed, #{get_module_name(ref)}}"
+    "#{get_module_name(ref)}"
   end
 
-  defp get_type(prop, all_schemas) do
-    cond do
-      Map.has_key?(prop, "$ref") ->
-        "{:embed, #{get_module_name(prop["$ref"])}}"
-      Map.has_key?(prop, "type") ->
-        case prop["type"] do
-          "string" -> ":string"
-          "integer" -> ":integer"
-          "number" -> ":float"
-          "boolean" -> ":boolean"
-          "array" -> "{:array, #{get_type(prop["items"], all_schemas)}}"
-          "object" ->
-            if Map.has_key?(prop, "properties") do
-              ":map"
-            else
-              "{:embed, #{get_module_name(prop["$ref"])}}"
-            end
-          _ -> ":any"
-        end
-      true -> ":any"
+  defp get_type(%{"$ref" => ref}, all_schemas) do
+    case get_ref_schema(ref, all_schemas) do
+      nil -> ":no_schema_found"  # or another appropriate default
+      _ -> "#{get_module_name(ref)}"
     end
   end
+
+defp get_type(prop, all_schemas) do
+  cond do
+    Map.has_key?(prop, "$ref") ->
+      ref = prop["$ref"]
+      module_name = get_module_name(ref)
+      "#{module_name}"
+    Map.has_key?(prop, "type") ->
+      case prop["type"] do
+        "string" -> ":string"
+        "integer" -> ":integer"
+        "number" -> ":float"
+        "boolean" -> ":boolean"
+        "array" -> "{:array, #{get_type(prop["items"], all_schemas)}}"
+        "object" ->
+          if Map.has_key?(prop, "properties"), do: ":map", else: ":any"
+        _ -> ":any"
+      end
+    true -> ":any"
+  end
+end
 
   defp get_field_atoms(schema, all_schemas) do
     get_properties(schema, all_schemas)
@@ -185,19 +203,19 @@ end
   end
   defp get_nested_validation(_, _, _), do: nil
 
-  defp get_ref_schema(ref, all_schemas) do
-    name = ref |> String.replace("#/components/schemas/", "")
-    Map.get(all_schemas, name, %{})
-  end
+  # defp get_ref_schema(ref, all_schemas) do
+  #   name = ref |> String.replace("#/components/schemas/", "")
+  #   Map.get(all_schemas, name, %{})
+  # end
 
 ## Claude suggested this then adapting all other functions
 ## (like get_type) to
 ## handle the case where the reference doesn't exist?
 ## Not sure.
-  # defp get_ref_schema(ref, all_schemas) do
-  #   name = ref |> String.replace("#/components/schemas/", "")
-  #   Map.get(all_schemas, name)
-  # end
+  defp get_ref_schema(ref, all_schemas) do
+    name = ref |> String.replace("#/components/schemas/", "")
+    Map.get(all_schemas, name)
+  end
 
   defp get_module_name(ref) when is_binary(ref) do
     ref

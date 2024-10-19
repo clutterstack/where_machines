@@ -6,13 +6,13 @@ defmodule FlyMachinesApi.Schemas.FlyMachineService do
   embedded_schema do
     field :autostart, :boolean
     field :autostop, :string
-    field :checks, {:array, {:embed, FlyMachinesApi.Schemas.FlyMachineCheck}}
-    field :concurrency, {:embed, FlyMachinesApi.Schemas.FlyMachineServiceConcurrency}
+    field :checks, {:array, FlyMachinesApi.Schemas.FlyMachineCheck}
+    embeds_one :concurrency, FlyMachinesApi.Schemas.FlyMachineServiceConcurrency
     field :force_instance_description, :string
     field :force_instance_key, :string
     field :internal_port, :integer
     field :min_machines_running, :integer
-    field :ports, {:array, {:embed, FlyMachinesApi.Schemas.FlyMachinePort}}
+    field :ports, {:array, FlyMachinesApi.Schemas.FlyMachinePort}
     field :protocol, :string
   end
 

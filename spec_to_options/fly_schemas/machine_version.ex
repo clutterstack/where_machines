@@ -4,7 +4,7 @@ defmodule FlyMachinesApi.Schemas.MachineVersion do
 
   @primary_key false
   embedded_schema do
-    field :user_config, {:embed, FlyMachinesApi.Schemas.FlyMachineConfig}
+    embeds_one :user_config, FlyMachinesApi.Schemas.FlyMachineConfig
     field :version, :string
   end
 

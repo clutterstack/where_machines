@@ -5,7 +5,7 @@ defmodule FlyMachinesApi.Schemas.ExtendVolumeResponse do
   @primary_key false
   embedded_schema do
     field :needs_restart, :boolean
-    field :volume, {:embed, FlyMachinesApi.Schemas.Volume}
+    embeds_one :volume, FlyMachinesApi.Schemas.Volume
   end
 
   def changeset(schema, attrs) do

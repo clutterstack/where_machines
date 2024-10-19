@@ -4,7 +4,7 @@ defmodule FlyMachinesApi.Schemas.CreateMachineRequest do
 
   @primary_key false
   embedded_schema do
-    field :config, {:embed, FlyMachinesApi.Schemas.FlyMachineConfig}
+    embeds_one :config, FlyMachinesApi.Schemas.FlyMachineConfig
     field :lease_ttl, :integer
     field :lsvd, :boolean
     field :name, :string

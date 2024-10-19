@@ -7,11 +7,11 @@ defmodule FlyMachinesApi.Schemas.FlyMachinePort do
     field :end_port, :integer
     field :force_https, :boolean
     field :handlers, {:array, :string}
-    field :http_options, {:embed, FlyMachinesApi.Schemas.FlyHTTPOptions}
+    embeds_one :http_options, FlyMachinesApi.Schemas.FlyHTTPOptions
     field :port, :integer
-    field :proxy_proto_options, {:embed, FlyMachinesApi.Schemas.FlyProxyProtoOptions}
+    embeds_one :proxy_proto_options, FlyMachinesApi.Schemas.FlyProxyProtoOptions
     field :start_port, :integer
-    field :tls_options, {:embed, FlyMachinesApi.Schemas.FlyTLSOptions}
+    embeds_one :tls_options, FlyMachinesApi.Schemas.FlyTLSOptions
   end
 
   def changeset(schema, attrs) do

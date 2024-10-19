@@ -4,7 +4,7 @@ defmodule FlyMachinesApi.Schemas.CreateVolumeRequest do
 
   @primary_key false
   embedded_schema do
-    field :compute, {:embed, FlyMachinesApi.Schemas.FlyMachineGuest}
+    embeds_one :compute, FlyMachinesApi.Schemas.FlyMachineGuest
     field :compute_image, :string
     field :encrypted, :boolean
     field :fstype, :string

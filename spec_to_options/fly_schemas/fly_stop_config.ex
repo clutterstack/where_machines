@@ -5,7 +5,7 @@ defmodule FlyMachinesApi.Schemas.FlyStopConfig do
   @primary_key false
   embedded_schema do
     field :signal, :string
-    field :timeout, {:embed, FlyMachinesApi.Schemas.FlyDuration}
+    embeds_one :timeout, FlyMachinesApi.Schemas.FlyDuration
   end
 
   def changeset(schema, attrs) do

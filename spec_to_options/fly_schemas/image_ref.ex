@@ -5,7 +5,7 @@ defmodule FlyMachinesApi.Schemas.ImageRef do
   @primary_key false
   embedded_schema do
     field :digest, :string
-    field :labels, {:embed, UnknownSchema}
+    field :labels, :any
     field :registry, :string
     field :repository, :string
     field :tag, :string

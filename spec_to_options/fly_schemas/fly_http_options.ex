@@ -8,7 +8,7 @@ defmodule FlyMachinesApi.Schemas.FlyHTTPOptions do
     field :h2_backend, :boolean
     field :headers_read_timeout, :integer
     field :idle_timeout, :integer
-    field :response, {:embed, FlyMachinesApi.Schemas.FlyHTTPResponseOptions}
+    embeds_one :response, FlyMachinesApi.Schemas.FlyHTTPResponseOptions
   end
 
   def changeset(schema, attrs) do

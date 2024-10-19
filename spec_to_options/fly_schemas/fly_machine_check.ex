@@ -4,15 +4,15 @@ defmodule FlyMachinesApi.Schemas.FlyMachineCheck do
 
   @primary_key false
   embedded_schema do
-    field :grace_period, {:embed, FlyMachinesApi.Schemas.FlyDuration}
-    field :headers, {:array, {:embed, FlyMachinesApi.Schemas.FlyMachineHTTPHeader}}
-    field :interval, {:embed, FlyMachinesApi.Schemas.FlyDuration}
+    embeds_one :grace_period, FlyMachinesApi.Schemas.FlyDuration
+    field :headers, {:array, FlyMachinesApi.Schemas.FlyMachineHTTPHeader}
+    embeds_one :interval, FlyMachinesApi.Schemas.FlyDuration
     field :kind, :string
     field :method, :string
     field :path, :string
     field :port, :integer
     field :protocol, :string
-    field :timeout, {:embed, FlyMachinesApi.Schemas.FlyDuration}
+    embeds_one :timeout, FlyMachinesApi.Schemas.FlyDuration
     field :tls_server_name, :string
     field :tls_skip_verify, :boolean
     field :type, :string

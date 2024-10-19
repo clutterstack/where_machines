@@ -5,25 +5,25 @@ defmodule FlyMachinesApi.Schemas.FlyMachineConfig do
   @primary_key false
   embedded_schema do
     field :auto_destroy, :boolean
-    field :checks, {:embed, UnknownSchema}
+    field :checks, :any
     field :disable_machine_autostart, :boolean
-    field :dns, {:embed, FlyMachinesApi.Schemas.FlyDNSConfig}
-    field :env, {:embed, UnknownSchema}
-    field :files, {:array, {:embed, FlyMachinesApi.Schemas.FlyFile}}
-    field :guest, {:embed, FlyMachinesApi.Schemas.FlyMachineGuest}
+    embeds_one :dns, FlyMachinesApi.Schemas.FlyDNSConfig
+    field :env, :any
+    field :files, {:array, FlyMachinesApi.Schemas.FlyFile}
+    embeds_one :guest, FlyMachinesApi.Schemas.FlyMachineGuest
     field :image, :string
-    field :init, {:embed, FlyMachinesApi.Schemas.FlyMachineInit}
-    field :metadata, {:embed, UnknownSchema}
-    field :metrics, {:embed, FlyMachinesApi.Schemas.FlyMachineMetrics}
-    field :mounts, {:array, {:embed, FlyMachinesApi.Schemas.FlyMachineMount}}
-    field :processes, {:array, {:embed, FlyMachinesApi.Schemas.FlyMachineProcess}}
-    field :restart, {:embed, FlyMachinesApi.Schemas.FlyMachineRestart}
+    embeds_one :init, FlyMachinesApi.Schemas.FlyMachineInit
+    field :metadata, :any
+    embeds_one :metrics, FlyMachinesApi.Schemas.FlyMachineMetrics
+    field :mounts, {:array, FlyMachinesApi.Schemas.FlyMachineMount}
+    field :processes, {:array, FlyMachinesApi.Schemas.FlyMachineProcess}
+    embeds_one :restart, FlyMachinesApi.Schemas.FlyMachineRestart
     field :schedule, :string
-    field :services, {:array, {:embed, FlyMachinesApi.Schemas.FlyMachineService}}
+    field :services, {:array, FlyMachinesApi.Schemas.FlyMachineService}
     field :size, :string
     field :standbys, {:array, :string}
-    field :statics, {:array, {:embed, FlyMachinesApi.Schemas.FlyStatic}}
-    field :stop_config, {:embed, FlyMachinesApi.Schemas.FlyStopConfig}
+    field :statics, {:array, FlyMachinesApi.Schemas.FlyStatic}
+    embeds_one :stop_config, FlyMachinesApi.Schemas.FlyStopConfig
   end
 
   def changeset(schema, attrs) do
