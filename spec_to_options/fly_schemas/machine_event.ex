@@ -1,0 +1,20 @@
+defmodule FlyMachinesApi.Schemas.MachineEvent do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  @primary_key false
+  embedded_schema do
+    field :id, :string
+    field :request, {:embed, UnknownSchema}
+    field :source, :string
+    field :status, :string
+    field :timestamp, :integer
+    field :type, :string
+  end
+
+  def changeset(schema, attrs) do
+    schema
+    |> cast(attrs, [:id, :request, :source, :status, :timestamp, :type])
+    
+  end
+end
