@@ -38,14 +38,23 @@ defmodule MachinesApiToEcto do
     """
   end
 
+  # The OpenAPI spec seems to have four main ways to insert refs to other schemas:
+  # - simply transclude the keys and values inside a field
+  # - inside an additionalProperties field (so you could have several properties of this type in that object)
+  # - inside allOf (add all the keys and values of that schema to this schema)
+  # - as the value of "type" for a field (so you could again have several instances)
+  # All the refs need either embeds_many or embeds_one in the schema; everything else can be a field
 
   defp get_fields(schema, all_schemas) do
     properties = get_properties(schema, all_schemas)
     properties
     |> Enum.map(fn {name, prop} ->
-      type = get_type(prop, all_schemas) |> IO.inspect(label: "Name is #{name}. is the type a normal type or a schema??")
+      type = get_type(prop, all_schemas) # |> IO.inspect(label: "Name is #{name}. is the type a normal type or a schema??")
       cond do
-        String.starts_with?(type, "FlyApi.") ->
+        is_additional_properties_ref?(prop) ->
+          value_type = get_type(prop["additionalProperties"], all_schemas)
+          "embeds_many :#{sanitize_field_name(name)}, #{value_type}"
+        is_ref?(prop) ->
           "embeds_one :#{sanitize_field_name(name)}, #{type}"
         is_array_of_refs?(prop) ->
           ref_type = get_module_name(prop["items"]["$ref"])
@@ -55,6 +64,16 @@ defmodule MachinesApiToEcto do
       end
     end)
     |> Enum.join("\n    ")
+  end
+
+  defp is_additional_properties_ref?(prop) do
+    prop["type"] == "object" &&
+    Map.has_key?(prop, "additionalProperties") &&
+    is_ref?(prop["additionalProperties"])
+  end
+
+  defp is_ref?(prop) do
+    Map.has_key?(prop, "$ref") || (Map.has_key?(prop, "allOf") && hd(prop["allOf"]) |> Map.has_key?("$ref"))
   end
 
   defp is_array_of_refs?(%{"type" => "array", "items" => %{"$ref" => _}}), do: true
@@ -100,13 +119,21 @@ defp get_type(prop, all_schemas) do
       "#{module_name}"
     Map.has_key?(prop, "type") ->
       case prop["type"] do
+        "object" ->
+          cond do
+            Map.has_key?(prop, "additionalProperties") ->
+              additional_prop_type = get_type(prop["additionalProperties"], all_schemas)
+              "{:map, #{additional_prop_type}}"
+            Map.has_key?(prop, "properties") ->
+              ":map"
+            true ->
+              ":map"
+          end
         "string" -> ":string"
         "integer" -> ":integer"
         "number" -> ":float"
         "boolean" -> ":boolean"
         "array" -> "{:array, #{get_type(prop["items"], all_schemas)}}"
-        "object" ->
-          if Map.has_key?(prop, "properties"), do: ":map", else: ":string"
         _ -> ":string" # if type is unknown
       end
     true -> ":map" # if there's no such key. Could change this to string I suppose, or error?
