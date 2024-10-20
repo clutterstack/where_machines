@@ -16,7 +16,7 @@ defmodule FlyApi.ProcessStat do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:command, :cpu, :directory, :pid, :rss, :rtime, :stime])
+        |> cast(attrs, [:command, :cpu, :directory, :pid, :rss, :rtime, :stime])
         |> cast_embed(:listen_sockets, with: &FlyApi.ListenSocket.changeset/2)
   end
 end

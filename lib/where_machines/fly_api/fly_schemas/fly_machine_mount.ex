@@ -16,7 +16,7 @@ defmodule FlyApi.FlyMachineMount do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:add_size_gb, :encrypted, :extend_threshold_percent, :name, :path, :size_gb, :size_gb_limit, :volume])
+        |> cast(attrs, [:add_size_gb, :encrypted, :extend_threshold_percent, :name, :path, :size_gb, :size_gb_limit, :volume])
     
   end
 end

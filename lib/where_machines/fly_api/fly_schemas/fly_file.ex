@@ -12,7 +12,7 @@ defmodule FlyApi.FlyFile do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:guest_path, :mode, :raw_value, :secret_name])
+        |> cast(attrs, [:guest_path, :mode, :raw_value, :secret_name])
     
   end
 end

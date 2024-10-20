@@ -12,7 +12,7 @@ defmodule FlyApi.FlyStatic do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:guest_path, :index_document, :tigris_bucket, :url_prefix])
+        |> cast(attrs, [:guest_path, :index_document, :tigris_bucket, :url_prefix])
         |> validate_required([:guest_path, :url_prefix])
     
   end

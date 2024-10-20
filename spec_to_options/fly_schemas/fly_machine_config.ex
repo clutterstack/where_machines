@@ -28,7 +28,6 @@ defmodule FlyApi.FlyMachineConfig do
 
   def changeset(schema, attrs) do
     schema
-        |> validate_required([:image])
         |> cast(attrs, [:auto_destroy, :disable_machine_autostart, :image, :schedule, :size, :standbys])
         |> cast_embed(:dns, with: &FlyApi.FlyDNSConfig.changeset/2)
     |> cast_embed(:files, with: &FlyApi.FlyFile.changeset/2)
@@ -41,5 +40,6 @@ defmodule FlyApi.FlyMachineConfig do
     |> cast_embed(:services, with: &FlyApi.FlyMachineService.changeset/2)
     |> cast_embed(:statics, with: &FlyApi.FlyStatic.changeset/2)
     |> cast_embed(:stop_config, with: &FlyApi.FlyStopConfig.changeset/2)
+    |> validate_required([:image])
   end
 end

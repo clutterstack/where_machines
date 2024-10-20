@@ -12,7 +12,7 @@ defmodule FlyApi.ListApp do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:id, :machine_count, :name])
+        |> cast(attrs, [:id, :machine_count, :name])
     
   end
 end

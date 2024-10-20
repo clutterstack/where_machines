@@ -11,7 +11,7 @@ defmodule FlyApi.FlyTLSOptions do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:alpn, :default_self_signed, :versions])
+        |> cast(attrs, [:alpn, :default_self_signed, :versions])
     
   end
 end

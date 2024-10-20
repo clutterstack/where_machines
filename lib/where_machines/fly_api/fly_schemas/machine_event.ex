@@ -14,7 +14,7 @@ defmodule FlyApi.MachineEvent do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:id, :source, :status, :timestamp, :type])
+        |> cast(attrs, [:id, :source, :status, :timestamp, :type])
     
   end
 end

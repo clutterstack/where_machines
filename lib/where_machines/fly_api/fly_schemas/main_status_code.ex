@@ -9,7 +9,7 @@ defmodule FlyApi.MainStatusCode do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [])
+        |> cast(attrs, [])
     
   end
 end

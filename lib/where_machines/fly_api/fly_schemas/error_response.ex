@@ -11,7 +11,7 @@ defmodule FlyApi.ErrorResponse do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:error])
+        |> cast(attrs, [:error])
         |> cast_embed(:status, with: &FlyApi.MainStatusCode.changeset/2)
   end
 end

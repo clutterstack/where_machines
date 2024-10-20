@@ -13,7 +13,7 @@ defmodule FlyApi.Lease do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:description, :expires_at, :nonce, :owner, :version])
+        |> cast(attrs, [:description, :expires_at, :nonce, :owner, :version])
     
   end
 end

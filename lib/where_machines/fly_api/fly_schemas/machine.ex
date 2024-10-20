@@ -23,7 +23,7 @@ defmodule FlyApi.Machine do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:created_at, :host_status, :id, :instance_id, :name, :nonce, :private_ip, :region, :state, :updated_at])
+        |> cast(attrs, [:created_at, :host_status, :id, :instance_id, :name, :nonce, :private_ip, :region, :state, :updated_at])
         |> cast_embed(:checks, with: &FlyApi.CheckStatus.changeset/2)
     |> cast_embed(:config, with: &FlyApi.FlyMachineConfig.changeset/2)
     |> cast_embed(:events, with: &FlyApi.MachineEvent.changeset/2)

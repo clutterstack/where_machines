@@ -67,7 +67,6 @@ Run a new Machine
   #   end
   # end
 
-
 @doc """
 Try running with a preset config:
 """

@@ -12,7 +12,7 @@ defmodule FlyApi.CheckStatus do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:name, :output, :status, :updated_at])
+        |> cast(attrs, [:name, :output, :status, :updated_at])
     
   end
 end

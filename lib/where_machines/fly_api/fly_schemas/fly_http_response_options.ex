@@ -10,7 +10,7 @@ defmodule FlyApi.FlyHTTPResponseOptions do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:pristine])
+        |> cast(attrs, [:pristine])
     
   end
 end

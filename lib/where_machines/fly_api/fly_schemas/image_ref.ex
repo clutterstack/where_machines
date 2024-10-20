@@ -13,7 +13,7 @@ defmodule FlyApi.ImageRef do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:digest, :registry, :repository, :tag])
+        |> cast(attrs, [:digest, :registry, :repository, :tag])
     
   end
 end

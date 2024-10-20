@@ -12,7 +12,7 @@ defmodule FlyApi.Flydv1ExecResponse do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:exit_code, :exit_signal, :stderr, :stdout])
+        |> cast(attrs, [:exit_code, :exit_signal, :stderr, :stdout])
     
   end
 end

@@ -16,7 +16,7 @@ defmodule FlyApi.FlyMachinePort do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:end_port, :force_https, :handlers, :port, :start_port])
+        |> cast(attrs, [:end_port, :force_https, :handlers, :port, :start_port])
         |> cast_embed(:http_options, with: &FlyApi.FlyHTTPOptions.changeset/2)
     |> cast_embed(:proxy_proto_options, with: &FlyApi.FlyProxyProtoOptions.changeset/2)
     |> cast_embed(:tls_options, with: &FlyApi.FlyTLSOptions.changeset/2)

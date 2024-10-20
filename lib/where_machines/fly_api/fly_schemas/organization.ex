@@ -10,7 +10,7 @@ defmodule FlyApi.Organization do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:name, :slug])
+        |> cast(attrs, [:name, :slug])
     
   end
 end

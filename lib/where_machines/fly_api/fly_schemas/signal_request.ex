@@ -9,7 +9,7 @@ defmodule FlyApi.SignalRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:signal])
+        |> cast(attrs, [:signal])
     
   end
 end

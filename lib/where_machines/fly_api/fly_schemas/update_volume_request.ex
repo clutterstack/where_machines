@@ -10,7 +10,7 @@ defmodule FlyApi.UpdateVolumeRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:auto_backup_enabled, :snapshot_retention])
+        |> cast(attrs, [:auto_backup_enabled, :snapshot_retention])
     
   end
 end

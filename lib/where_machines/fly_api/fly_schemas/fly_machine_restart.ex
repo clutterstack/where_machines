@@ -11,7 +11,7 @@ defmodule FlyApi.FlyMachineRestart do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:gpu_bid_price, :max_retries, :policy])
+        |> cast(attrs, [:gpu_bid_price, :max_retries, :policy])
     
   end
 end

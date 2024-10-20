@@ -10,7 +10,7 @@ defmodule FlyApi.FlyDnsForwardRule do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:addr, :basename])
+        |> cast(attrs, [:addr, :basename])
     
   end
 end

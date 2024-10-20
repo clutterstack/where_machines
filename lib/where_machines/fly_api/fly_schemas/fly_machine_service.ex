@@ -18,7 +18,7 @@ defmodule FlyApi.FlyMachineService do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:autostart, :autostop, :force_instance_description, :force_instance_key, :internal_port, :min_machines_running, :protocol])
+        |> cast(attrs, [:autostart, :autostop, :force_instance_description, :force_instance_key, :internal_port, :min_machines_running, :protocol])
         |> cast_embed(:checks, with: &FlyApi.FlyMachineCheck.changeset/2)
     |> cast_embed(:concurrency, with: &FlyApi.FlyMachineServiceConcurrency.changeset/2)
     |> cast_embed(:ports, with: &FlyApi.FlyMachinePort.changeset/2)

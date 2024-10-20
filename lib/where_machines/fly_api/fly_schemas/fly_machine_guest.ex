@@ -15,7 +15,7 @@ defmodule FlyApi.FlyMachineGuest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:cpu_kind, :cpus, :gpu_kind, :gpus, :host_dedication_id, :kernel_args, :memory_mb])
+        |> cast(attrs, [:cpu_kind, :cpus, :gpu_kind, :gpus, :host_dedication_id, :kernel_args, :memory_mb])
     
   end
 end

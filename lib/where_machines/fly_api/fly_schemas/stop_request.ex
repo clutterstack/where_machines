@@ -10,7 +10,7 @@ defmodule FlyApi.StopRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:signal])
+        |> cast(attrs, [:signal])
         |> cast_embed(:timeout, with: &FlyApi.FlyDuration.changeset/2)
   end
 end

@@ -20,7 +20,7 @@ defmodule FlyApi.FlyMachineCheck do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:kind, :method, :path, :port, :protocol, :tls_server_name, :tls_skip_verify, :type])
+        |> cast(attrs, [:kind, :method, :path, :port, :protocol, :tls_server_name, :tls_skip_verify, :type])
         |> cast_embed(:grace_period, with: &FlyApi.FlyDuration.changeset/2)
     |> cast_embed(:headers, with: &FlyApi.FlyMachineHTTPHeader.changeset/2)
     |> cast_embed(:interval, with: &FlyApi.FlyDuration.changeset/2)

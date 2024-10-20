@@ -9,7 +9,7 @@ defmodule FlyApi.CreateSecretRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:value])
+        |> cast(attrs, [:value])
     
   end
 end

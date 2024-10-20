@@ -10,7 +10,8 @@ defmodule FlyApi.FlyEnvFrom do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:env_var, :field_ref])
+        |> cast(attrs, [:env_var, :field_ref])
     
+    |> validate_required([:env_var])
   end
 end

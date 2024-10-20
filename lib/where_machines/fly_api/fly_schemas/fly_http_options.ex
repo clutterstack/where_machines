@@ -13,7 +13,7 @@ defmodule FlyApi.FlyHTTPOptions do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:compress, :h2_backend, :headers_read_timeout, :idle_timeout])
+        |> cast(attrs, [:compress, :h2_backend, :headers_read_timeout, :idle_timeout])
         |> cast_embed(:response, with: &FlyApi.FlyHTTPResponseOptions.changeset/2)
   end
 end

@@ -11,7 +11,7 @@ defmodule FlyApi.ListSecret do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:label, :publickey, :type])
+        |> cast(attrs, [:label, :publickey, :type])
     
   end
 end

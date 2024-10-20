@@ -10,7 +10,7 @@ defmodule FlyApi.ListAppsResponse do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:total_apps])
+        |> cast(attrs, [:total_apps])
         |> cast_embed(:apps, with: &FlyApi.ListApp.changeset/2)
   end
 end

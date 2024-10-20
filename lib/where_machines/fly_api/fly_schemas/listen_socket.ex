@@ -10,7 +10,7 @@ defmodule FlyApi.ListenSocket do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:address, :proto])
+        |> cast(attrs, [:address, :proto])
     
   end
 end

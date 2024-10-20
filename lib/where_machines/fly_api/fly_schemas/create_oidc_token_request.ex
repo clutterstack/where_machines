@@ -9,7 +9,7 @@ defmodule FlyApi.CreateOIDCTokenRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:aud])
+        |> cast(attrs, [:aud])
     
   end
 end

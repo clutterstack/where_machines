@@ -11,7 +11,7 @@ defmodule FlyApi.MachineExecRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:cmd, :command, :timeout])
+        |> cast(attrs, [:cmd, :command, :timeout])
     
   end
 end

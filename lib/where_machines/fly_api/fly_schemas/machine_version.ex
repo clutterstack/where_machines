@@ -10,7 +10,7 @@ defmodule FlyApi.MachineVersion do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:version])
+        |> cast(attrs, [:version])
         |> cast_embed(:user_config, with: &FlyApi.FlyMachineConfig.changeset/2)
   end
 end

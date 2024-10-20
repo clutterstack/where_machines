@@ -16,7 +16,7 @@ defmodule FlyApi.FlyMachineProcess do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:cmd, :entrypoint, :exec, :ignore_app_secrets, :user])
+        |> cast(attrs, [:cmd, :entrypoint, :exec, :ignore_app_secrets, :user])
         |> cast_embed(:env_from, with: &FlyApi.FlyEnvFrom.changeset/2)
     |> cast_embed(:secrets, with: &FlyApi.FlyMachineSecret.changeset/2)
   end

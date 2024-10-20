@@ -10,7 +10,7 @@ defmodule FlyApi.FlyDnsOption do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:name, :value])
+        |> cast(attrs, [:name, :value])
     
   end
 end

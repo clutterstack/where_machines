@@ -9,7 +9,7 @@ defmodule FlyApi.FlyProxyProtoOptions do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:version])
+        |> cast(attrs, [:version])
     
   end
 end

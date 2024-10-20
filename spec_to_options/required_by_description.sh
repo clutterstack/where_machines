@@ -27,9 +27,13 @@ add_validation() {
         return 1
     fi
 
-    sed -i '' -e "/def changeset(schema, attrs) do/{N;/\n    schema/ a\\
-        |> validate_required([:$field])
-    }" "$file"
+    # sed -i '' -e "/def changeset(schema, attrs) do/{N;/\n    schema/ a\\
+    #     |> validate_required([:$field])
+    # }" "$file"
+    sed -i '' "/def changeset(schema, attrs) do/,/^[[:space:]]*end[[:space:]]*$/ {
+    /^[[:space:]]*end[[:space:]]*$/ i\\
+    |> validate_required([:$field])
+}" "$file"
 
     # Check if sed command was successful
     if [ $? -ne 0 ]; then

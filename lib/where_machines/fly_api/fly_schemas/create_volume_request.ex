@@ -19,7 +19,7 @@ defmodule FlyApi.CreateVolumeRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:compute_image, :encrypted, :fstype, :name, :region, :require_unique_zone, :size_gb, :snapshot_id, :snapshot_retention, :source_volume_id])
+        |> cast(attrs, [:compute_image, :encrypted, :fstype, :name, :region, :require_unique_zone, :size_gb, :snapshot_id, :snapshot_retention, :source_volume_id])
         |> cast_embed(:compute, with: &FlyApi.FlyMachineGuest.changeset/2)
   end
 end

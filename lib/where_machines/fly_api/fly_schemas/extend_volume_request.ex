@@ -9,7 +9,7 @@ defmodule FlyApi.ExtendVolumeRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:size_gb])
+        |> cast(attrs, [:size_gb])
     
   end
 end

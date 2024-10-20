@@ -15,7 +15,7 @@ defmodule FlyApi.FlyDNSConfig do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:hostname, :hostname_fqdn, :nameservers, :searches, :skip_registration])
+        |> cast(attrs, [:hostname, :hostname_fqdn, :nameservers, :searches, :skip_registration])
         |> cast_embed(:dns_forward_rules, with: &FlyApi.FlyDnsForwardRule.changeset/2)
     |> cast_embed(:options, with: &FlyApi.FlyDnsOption.changeset/2)
   end

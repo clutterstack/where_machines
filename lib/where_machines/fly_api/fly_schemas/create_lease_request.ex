@@ -10,7 +10,7 @@ defmodule FlyApi.CreateLeaseRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:description, :ttl])
+        |> cast(attrs, [:description, :ttl])
     
   end
 end

@@ -14,7 +14,7 @@ defmodule FlyApi.FlyMachineInit do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:cmd, :entrypoint, :exec, :kernel_args, :swap_size_mb, :tty])
+        |> cast(attrs, [:cmd, :entrypoint, :exec, :kernel_args, :swap_size_mb, :tty])
     
   end
 end

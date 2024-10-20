@@ -12,7 +12,7 @@ defmodule FlyApi.App do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:id, :name, :status])
+        |> cast(attrs, [:id, :name, :status])
         |> cast_embed(:organization, with: &FlyApi.Organization.changeset/2)
   end
 end

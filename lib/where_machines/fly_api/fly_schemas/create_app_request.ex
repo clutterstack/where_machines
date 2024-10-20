@@ -12,7 +12,7 @@ defmodule FlyApi.CreateAppRequest do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:app_name, :enable_subdomains, :network, :org_slug])
+        |> cast(attrs, [:app_name, :enable_subdomains, :network, :org_slug])
     
   end
 end

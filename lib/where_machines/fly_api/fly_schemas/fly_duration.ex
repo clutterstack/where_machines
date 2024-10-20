@@ -9,7 +9,7 @@ defmodule FlyApi.FlyDuration do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:time_duration])
+        |> cast(attrs, [:time_duration])
     
   end
 end

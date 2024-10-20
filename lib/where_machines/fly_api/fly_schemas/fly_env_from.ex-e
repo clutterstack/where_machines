@@ -1,16 +1,16 @@
-defmodule FlyApi.FlyMachineMetrics do
+defmodule FlyApi.FlyEnvFrom do
   use Ecto.Schema
   import Ecto.Changeset
 
   @primary_key false
   embedded_schema do
-    field :path, :string
-    field :port, :integer
+    field :env_var, :string
+    field :field_ref, :string
   end
 
   def changeset(schema, attrs) do
     schema
-        |> cast(attrs, [:path, :port])
+    |> cast(attrs, [:env_var, :field_ref])
     
   end
 end

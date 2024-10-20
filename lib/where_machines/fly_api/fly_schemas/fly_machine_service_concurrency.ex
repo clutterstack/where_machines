@@ -11,7 +11,7 @@ defmodule FlyApi.FlyMachineServiceConcurrency do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:hard_limit, :soft_limit, :type])
+        |> cast(attrs, [:hard_limit, :soft_limit, :type])
     
   end
 end

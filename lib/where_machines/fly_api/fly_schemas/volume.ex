@@ -26,7 +26,7 @@ defmodule FlyApi.Volume do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:attached_alloc_id, :attached_machine_id, :auto_backup_enabled, :block_size, :blocks, :blocks_avail, :blocks_free, :created_at, :encrypted, :fstype, :host_status, :id, :name, :region, :size_gb, :snapshot_retention, :state, :zone])
+        |> cast(attrs, [:attached_alloc_id, :attached_machine_id, :auto_backup_enabled, :block_size, :blocks, :blocks_avail, :blocks_free, :created_at, :encrypted, :fstype, :host_status, :id, :name, :region, :size_gb, :snapshot_retention, :state, :zone])
     
   end
 end

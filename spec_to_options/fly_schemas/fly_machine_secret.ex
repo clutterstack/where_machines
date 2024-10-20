@@ -10,8 +10,8 @@ defmodule FlyApi.FlyMachineSecret do
 
   def changeset(schema, attrs) do
     schema
-        |> validate_required([:env_var])
         |> cast(attrs, [:env_var, :name])
     
+    |> validate_required([:env_var])
   end
 end

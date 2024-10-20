@@ -10,7 +10,7 @@ defmodule FlyApi.ExtendVolumeResponse do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:needs_restart])
+        |> cast(attrs, [:needs_restart])
         |> cast_embed(:volume, with: &FlyApi.Volume.changeset/2)
   end
 end

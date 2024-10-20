@@ -10,7 +10,7 @@ defmodule FlyApi.FlyMachineHTTPHeader do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:name, :values])
+        |> cast(attrs, [:name, :values])
     
   end
 end

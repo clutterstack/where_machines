@@ -14,7 +14,7 @@ defmodule FlyApi.VolumeSnapshot do
 
   def changeset(schema, attrs) do
     schema
-    |> cast(attrs, [:created_at, :digest, :id, :retention_days, :size, :status])
+        |> cast(attrs, [:created_at, :digest, :id, :retention_days, :size, :status])
     
   end
 end
