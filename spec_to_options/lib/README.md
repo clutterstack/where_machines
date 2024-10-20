@@ -1,6 +1,13 @@
-# Ecto embedded schemas from a JSON OpenAPI spec
+# Ecto embedded schemas from a JSON OpenAPI spec (at least the Fly Machines one)
 
 Fair warning: This is spaghetti mixed with salad. I used Claude iteratively (plus ChatGPT and Gemini occasionally) to push my way through this. _Also,_ it wasn't made from first principles. Claude and I reverse-engineered a specific API's OpenAPI spec from [doc.machines.dev](https://docs.machines.dev), so who knows if it generalizes to any other API!
+
+Unless I go in and clean it up, it may be hard to learn from. 
+
+## What it does (if it's working right)
+
+* Takes a filename where the JSON spec should be found, and an output directory name
+* For each component/schema it finds in the spec, writes a schema module file with an embedded schema and changeset into the specified output directory. 
 
 ## Usage
 
@@ -8,7 +15,7 @@ Fair warning: This is spaghetti mixed with salad. I used Claude iteratively (plu
 mix build_schemas <input-file> <output-dir>
 ```
 
-The input file must contain an OpenApi spec in JSON format.
+The input file must contain an OpenApi spec in JSON format. It's conceivable that the input file has to be the specific `spec.json` file I pulled from https://docs.machines.dev this week.
 
 ## Reasons for building this
 
@@ -17,10 +24,6 @@ The input file must contain an OpenApi spec in JSON format.
 * To learn about Elixir and Ecto
 * To let me validate request bodies I pass as maps to [Christian Kreiling](https://github.com/ckreiling)'s [Elixir client for the Fly Machines API](https://github.com/ckreiling/fly_machines).
 
-## What it does (if it's working right)
-
-* Takes a json spec filename and an output directory name
-* For each component/schema it finds in the spec, writes a schema module file with an embedded schema and changeset 
 
 ## Cases it tries to handle
 
@@ -46,8 +49,21 @@ If I wanted to validate keyword parameters, I would explore Nimble Options
 
 ## What to do with the output
 
-Manually edit any schema modules you're going to use as necessary. 
-For example, at the time of writing, the Fly Machines API makes extensive use of descriptions, but not anything like a `"required"` field, to indicate that a property is, in fact, required. So if I want my app to use changesets to check that I haven't forgotten an `"image"` in my Machine `"config"`, I have to go to the `FlyApi.FlyMachineConfig` module and add `|> validate_required([:image])` to the changeset definition.
+Copy it into the Elixir project you want to use it in. You'll need Ecto in the project to get anything out of this.
+
+
+
+### For the Fly Machines API
+
+There are some properties that are required but don't have a `"required"` field or anything to indicate that. So if I want my app to use changesets to check that I haven't forgotten an `"image"` in my Machine `"config"`, I have to go to the `FlyApi.FlyMachineConfig` module and add `|> validate_required([:image])` to the changeset definition.
+
+As of 20 Oct 2024, I've noticed the following required fields inside schemas that I can't easily get programmatically:
+
+* `CreateMachineRequest` and `UpdateMachineRequest` need `config` (which itself has to be a `fly.MachineConfig`)
+* `fly.MachineConfig` needs `image`
+* `fly.EnvFrom` and `fly.MachineSecret` both need `env_var`, according to their descriptions
+
+The bash script `required_by_description.sh` adds these to the changeset definitions _by editing their module files_. This is brittle and ridiculous but saves me hand-editing all the files every time I regenerate them with the Mix task.
 
 ## Things I was shaky on before starting
 

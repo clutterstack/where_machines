@@ -16,6 +16,6 @@ defmodule FlyApi.CreateMachineRequest do
   def changeset(schema, attrs) do
     schema
         |> cast(attrs, [:lease_ttl, :lsvd, :name, :region, :skip_launch, :skip_service_registration])
-        |> cast_embed(:config, with: &FlyApi.FlyMachineConfig.changeset/2)
+        |> cast_embed(:config, [:required, with: &FlyApi.FlyMachineConfig.changeset/2])
   end
 end
