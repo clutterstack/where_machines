@@ -4,7 +4,7 @@ defmodule FlyApi.ErrorResponse do
 
   @primary_key false
   embedded_schema do
-    field :details, :string
+    field :details, :map
     field :error, :string
     embeds_one :status, FlyApi.MainStatusCode
   end

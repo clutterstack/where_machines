@@ -5,7 +5,7 @@ defmodule FlyApi.ImageRef do
   @primary_key false
   embedded_schema do
     field :digest, :string
-    field :labels, :string
+    field :labels, {:map, :string}
     field :registry, :string
     field :repository, :string
     field :tag, :string

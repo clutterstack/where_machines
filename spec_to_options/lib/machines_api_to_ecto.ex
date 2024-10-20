@@ -168,6 +168,10 @@ end
     if validations == "", do: "", else: "    #{validations}"
   end
 
+
+  ## Not sure if this function is solid since at the time of writing there's only
+  ## one schema that bothers with a `"required"` field to indicate which properties
+  ## are compulsory (`fly.Static`)
   defp get_required_validation(schema, all_schemas) do
     required =
       case schema do

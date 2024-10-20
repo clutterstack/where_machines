@@ -4,7 +4,7 @@ defmodule FlyApi.FlyHTTPResponseOptions do
 
   @primary_key false
   embedded_schema do
-    field :headers, :string
+    field :headers, {:map, :map}
     field :pristine, :boolean
   end
 

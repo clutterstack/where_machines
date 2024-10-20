@@ -6,7 +6,7 @@ defmodule FlyApi.FlyMachineProcess do
   embedded_schema do
     field :cmd, {:array, :string}
     field :entrypoint, {:array, :string}
-    field :env, :string
+    field :env, {:map, :string}
     embeds_many :env_from, FlyApi.FlyEnvFrom
     field :exec, {:array, :string}
     field :ignore_app_secrets, :boolean

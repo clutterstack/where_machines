@@ -5,7 +5,7 @@ defmodule FlyApi.MachineEvent do
   @primary_key false
   embedded_schema do
     field :id, :string
-    field :request, :string
+    field :request, :map
     field :source, :string
     field :status, :string
     field :timestamp, :integer
