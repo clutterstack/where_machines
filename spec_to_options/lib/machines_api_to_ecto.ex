@@ -1,6 +1,5 @@
 defmodule MachinesApiToEcto do
 
-
   def convert(input_file, output_dir) do
     File.mkdir_p(output_dir)
     spec = input_file |> File.read!() |> Jason.decode!()
@@ -31,7 +30,7 @@ defmodule MachinesApiToEcto do
 
       def changeset(schema, attrs) do
         schema
-        |> cast(attrs, [#{get_field_atoms(schema, all_schemas)}])
+            |> cast(attrs, [#{get_field_atoms(schema, all_schemas)}])
         #{changeset}
       end
     end
@@ -111,43 +110,43 @@ defmodule MachinesApiToEcto do
     end
   end
 
-defp get_type(prop, all_schemas) do
-  cond do
-    Map.has_key?(prop, "$ref") ->
-      ref = prop["$ref"]
-      module_name = get_module_name(ref)
-      "#{module_name}"
-    Map.has_key?(prop, "type") ->
-      case prop["type"] do
-        "object" ->
-          cond do
-            Map.has_key?(prop, "additionalProperties") ->
-              additional_prop_type = get_type(prop["additionalProperties"], all_schemas)
-              "{:map, #{additional_prop_type}}"
-            Map.has_key?(prop, "properties") ->
-              ":map"
-            true ->
-              ":map"
-          end
-        "string" -> ":string"
-        "integer" -> ":integer"
-        "number" -> ":float"
-        "boolean" -> ":boolean"
-        "array" -> "{:array, #{get_type(prop["items"], all_schemas)}}"
-        _ -> ":string" # if type is unknown
-      end
-    true -> ":map" # if there's no such key. Could change this to string I suppose, or error?
+  defp get_type(prop, all_schemas) do
+    cond do
+      Map.has_key?(prop, "$ref") ->
+        ref = prop["$ref"]
+        module_name = get_module_name(ref)
+        "#{module_name}"
+      Map.has_key?(prop, "type") ->
+        case prop["type"] do
+          "object" ->
+            cond do
+              Map.has_key?(prop, "additionalProperties") ->
+                additional_prop_type = get_type(prop["additionalProperties"], all_schemas)
+                "{:map, #{additional_prop_type}}"
+              Map.has_key?(prop, "properties") ->
+                ":map"
+              true ->
+                ":map"
+            end
+          "string" -> ":string"
+          "integer" -> ":integer"
+          "number" -> ":float"
+          "boolean" -> ":boolean"
+          "array" -> "{:array, #{get_type(prop["items"], all_schemas)}}"
+          _ -> ":string" # if type is unknown
+        end
+      true -> ":map" # if there's no such key. Could change this to string I suppose, or error?
+    end
   end
-end
 
   defp get_field_atoms(schema, all_schemas) do
     get_properties(schema, all_schemas)
-    |> Enum.reject(fn {name, prop} -> is_embed?(prop, all_schemas) end)
+    |> Enum.reject(fn {_name, prop} -> is_embed?(prop) end)
     |> Enum.map(fn {name, _} -> ":#{sanitize_field_name(name)}" end)
     |> Enum.join(", ")
   end
 
-  defp is_embed?(prop, all_schemas) do
+  defp is_embed?(prop) do
     cond do
       Map.has_key?(prop, "$ref") -> true
       Map.has_key?(prop, "allOf") -> true
@@ -167,7 +166,6 @@ end
 
     if validations == "", do: "", else: "    #{validations}"
   end
-
 
   ## Not sure if this function is solid since at the time of writing there's only
   ## one schema that bothers with a `"required"` field to indicate which properties
@@ -258,4 +256,5 @@ end
     |> Enum.map(&Macro.underscore/1)
     |> Enum.join("_")
   end
+
 end
