@@ -21,31 +21,18 @@ Run a new Machine
   def create_machine(appname, body) do
     IO.inspect(body, label: "body")
     with {:ok, changeset} <- validate_schema(body, FlyApi.CreateMachineRequest) do
+      Logger.info("Valid changeset: #{inspect changeset}")
       {:ok, api_response} = FlyMachines.machine_create(appname, body)
       Logger.info("Response status: #{api_response.status}")
       Logger.info("New Machine ID: #{api_response.body["id"]}")
     else
       {:error, errors} -> Logger.info("Invalid CreateMachineRequest. #{inspect errors}")
-      _ -> Logger.info("body_changeset wasn't a valid CreateMachineRequest")
+      _ -> Logger.info("Here's a case that shouldn't happen.")
     end
   end
 
-  ## old
-  # def validate_schema(body, schema_module_name) do
-  #   changeset = schema_module_name.changeset(struct(schema_module_name), body)
-  #   if changeset.valid? do
-  #     IO.puts("Map matches the schema!")
-  #     true
-  #   else
-  #     IO.puts("Map does not match the schema.")
-  #     IO.inspect(Ecto.Changeset.traverse_errors(changeset, &(&1)), label: "traversing changeset errors")
-  #     false
-  #   end
-  # end
-
   def validate_schema(body, schema_module_name) do
     changeset = schema_module_name.changeset(struct(schema_module_name), body)
-
     case changeset.valid? do
       true ->
         {:ok, changeset}
@@ -53,19 +40,6 @@ Run a new Machine
         {:error, Ecto.Changeset.traverse_errors(changeset, &(&1))}
     end
   end
-
-  # def validate_req_body(body) do
-  #   IO.inspect(body, label: "inside validate_req_body; body")
-  #   changeset = FlyApi.CreateMachineRequest.changeset(%FlyApi.CreateMachineRequest{}, body)
-  #   if changeset.valid? do
-  #     IO.puts("Map matches the schema!")
-  #     true
-  #   else
-  #     IO.puts("Map does not match the schema.")
-  #     IO.inspect(Ecto.Changeset.traverse_errors(changeset, &(&1)), label: "traversing changeset errors")
-  #     false
-  #   end
-  # end
 
 @doc """
 Try running with a preset config:
