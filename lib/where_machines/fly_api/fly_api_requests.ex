@@ -1,4 +1,5 @@
 defmodule WhereMachines.FlyApi do
+
 @moduledoc """
 Functions to do Machines API calls using the FlyMachines library.
 The default config (see config.exs) for that lib uses a FLY_API_TOKEN
@@ -18,11 +19,11 @@ List apps in personal org
 @doc """
 Run a new Machine
 """
-def create_machine(appname, %FlyMachinesApi.Schemas.CreateMachineRequest{} = body) do
+def create_machine(appname, %FlyApi.CreateMachineRequest{} = body) do
   # def create_machine(appname, params \\ %{}) do
     # Need to validate the params. They have to be a map or struct, and I think
     # config must be required!
-    if validate_struct(body, FlyMachinesApi.Schemas.CreateMachineRequest) do
+    if validate_struct(body, FlyApi.CreateMachineRequest) do
       {:ok, api_response} = FlyMachines.machine_create(appname, body)
       Logger.info("HEY OVER HERE #{api_response.status}")
       Logger.info("The Machine ID: #{api_response.body["id"]}")
