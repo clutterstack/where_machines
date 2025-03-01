@@ -12,6 +12,5 @@ defmodule FlyApi.FlyMachineSecret do
     schema
         |> cast(attrs, [:env_var, :name])
     
-    |> validate_required([:env_var])
   end
 end

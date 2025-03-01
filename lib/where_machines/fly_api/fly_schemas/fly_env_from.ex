@@ -12,6 +12,5 @@ defmodule FlyApi.FlyEnvFrom do
     schema
         |> cast(attrs, [:env_var, :field_ref])
     
-    |> validate_required([:env_var])
   end
 end

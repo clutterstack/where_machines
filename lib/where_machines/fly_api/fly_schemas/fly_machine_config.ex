@@ -40,6 +40,5 @@ defmodule FlyApi.FlyMachineConfig do
     |> cast_embed(:services, with: &FlyApi.FlyMachineService.changeset/2)
     |> cast_embed(:statics, with: &FlyApi.FlyStatic.changeset/2)
     |> cast_embed(:stop_config, with: &FlyApi.FlyStopConfig.changeset/2)
-    |> validate_required([:image])
   end
 end
