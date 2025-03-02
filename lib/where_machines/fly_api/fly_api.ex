@@ -46,6 +46,7 @@ to get a deploy token for one app.
         {:error, {:unknown_operation, operation}}
 
       %{schema_module: schema_module, api_function: api_function} ->
+        Logger.info("params in execute_api_call: #{inspect params}")
         with {:ok, valid_params} <- validate_params(params, schema_module),
               {:ok, response} <- apply_api_function(api_function, args ++ [valid_params]) do
           result = response.body
@@ -116,14 +117,8 @@ to get a deploy token for one app.
     changeset = schema_module.changeset(struct(schema_module), params)
 
     if changeset.valid? do
-      # Convert to a map removing any nil values for the API call
-      valid_params =
-        changeset
-        |> Ecto.Changeset.apply_changes()
-        |> Map.from_struct()
-        |> cleanup_map()
-
-      {:ok, valid_params}
+      # Just use the original params since they're valid
+      {:ok, params}
     else
       errors = format_changeset_errors(changeset)
       Logger.error("Invalid params for #{inspect(schema_module)}: #{inspect(errors)}")
@@ -142,34 +137,10 @@ to get a deploy token for one app.
       end
     rescue
       e ->
-        Logger.error("Exception calling API: #{inspect(e)}")
+        Logger.error("In apply_api_function: #{inspect(e)}")
         {:error, {:exception, e}}
     end
   end
-
-  # Recursively cleans map by removing nil values and empty maps
-  # Convert a struct to a map first so we can use Enum functions
-
-  defp cleanup_map(struct) when is_struct(struct) do
-    struct
-    |> Map.from_struct()
-    |> cleanup_map()
-  end
-
-  defp cleanup_map(map) when is_map(map) do
-    map
-    |> Enum.filter(fn {_, v} -> v != nil end)
-    |> Enum.map(fn {k, v} -> {k, cleanup_value(v)} end)
-    |> Enum.into(%{})
-    |> reject_empty_maps()
-  end
-
-  defp cleanup_value(value) when is_map(value), do: cleanup_map(value)
-  defp cleanup_value(value) when is_list(value), do: Enum.map(value, &cleanup_value/1)
-  defp cleanup_value(value), do: value
-
-  defp reject_empty_maps(map) when map == %{}, do: nil
-  defp reject_empty_maps(map), do: map
 
   # Formats changeset errors into a human-readable format
   defp format_changeset_errors(changeset) do
