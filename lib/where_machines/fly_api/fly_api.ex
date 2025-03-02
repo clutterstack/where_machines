@@ -1,144 +1,77 @@
 defmodule WhereMachines.FlyApi do
 
-@moduledoc """
-Functions to do Machines API calls using the FlyMachines library.
-The default config (see config.exs) for that lib uses a FLY_API_TOKEN
-environment variable  -- for local dev do
-`export FLY_API_TOKEN=$(fly tokens deploy -a <appname>)`
-to get a deploy token for one app.
-"""
   require Logger
 
-  # List of operations with their schema module, required fields and API function
-  # TODO: swap this for pattern matching at `execute_api_call/3`
-  @operations %{
-    create_machine: %{
-      schema_module: FlyApi.CreateMachineRequest,
-      api_function: &FlyMachines.machine_create/2
-    },
-    update_machine: %{
-      schema_module: FlyApi.UpdateMachineRequest,
-      api_function: &FlyMachines.machine_update/3
-    },
-    create_volume: %{
-      schema_module: FlyApi.CreateVolumeRequest,
-      api_function: &FlyMachines.volume_create/2
-    },
-    update_volume: %{
-      schema_module: FlyApi.UpdateVolumeRequest,
-      api_function: &FlyMachines.volume_update/3
-    }
-  }
+  @moduledoc """
+  Functions to validate bodies and make API calls via the FlyMachines library.
+  The default config (see config.exs) for that lib uses a FLY_API_TOKEN
+  environment variable  -- for local dev do
+  `export FLY_API_TOKEN=$(fly tokens deploy -a <appname>)`
+  to get a deploy token for one app.
+  """
+
 
   @doc """
-  List apps in personal org
+  Functions to validate and execute API calls
+  Wouldn't need all these clauses if validation were wrapped into the FlyMachines
+  functions. But
+    1. my validation is based on a janky translation of the Machines
+  JSON OpenAPI spec so it's better to keep it separate.
+    2. I don't want to reimplement the nice API client lib
+  Therefore we need either a map or pattern matching to match up the API call with the Ecto schema to validate bodies against.
   """
-    def list_apps do
-      FlyMachines.app_list("personal")
-    end
 
-  @doc """
-  Generic function to validate and execute API calls
-  """
-  def execute_api_call(operation, args, params) when is_atom(operation) and is_map(params) do
-    case Map.get(@operations, operation) do
-      nil ->
-        {:error, {:unknown_operation, operation}}
+ # API calls that only need the appname
 
-      %{schema_module: schema_module, api_function: api_function} ->
-        Logger.info("params in execute_api_call: #{inspect params}")
-        with {:ok, valid_params} <- validate_params(params, schema_module),
-              {:ok, response} <- apply_api_function(api_function, args ++ [valid_params]) do
-          result = response.body
-          Logger.info("#{operation} successful")
-          {:ok, result}
-        end
+  # Set default empty body if omitted
+  def validate_and_run(operation_atom, [args]) when is_atom(operation) do
+    validate_and_run(operation_atom, [args], %{})
+  end
+
+  # Specific calls
+  def validate_and_run(:machine_create, [appname], body) do
+    with {:ok, req_body} <- validate_body(body, FlyApi.CreateMachineRequest),
+         {:ok, response} <- FlyMachines.machine_create(appname, req_body) do
+      {:ok, response.body}
     end
   end
 
-  # Convenience functions for common operations
-
-  @doc """
-  Run a new Machine
-  """
-  def create_machine(appname, params), do: execute_api_call(:create_machine, [appname], params)
-
-  @doc """
-  Change the Machine's config (causes a restart)
-  """
-  def update_machine(appname, machine_id, params), do: execute_api_call(:update_machine, [appname, machine_id], params)
-  @doc """
-  Create a new volume
-  """
-  def create_volume(appname, params), do: execute_api_call(:create_volume, [appname], params)
-  @doc """
-  Update a volume
-  """
-  def update_volume(appname, volume_id, params), do: execute_api_call(:update_volume, [appname, volume_id], params)
-
-
-
-  @doc """
-  Try running with a preset config:
-  """
-    def run_preset_machine do
-      appname = "where"
-      mach_params = %{
-        config: %{
-          image: "registry.fly.io/where:debian-nano",
-          auto_destroy: true,
-          guest: %{
-            cpu_kind: "shared",
-            cpus: 1,
-            memory_mb: 256
-          }
-        }
-      }
-      create_machine(appname, mach_params)
+  def validate_and_run(:volume_create, [appname], body) do
+    with {:ok, req_body} <- validate_body(body, FlyApi.CreateVolumeRequest),
+         {:ok, response} <- FlyMachines.volume_create(appname, req_body) do
+      {:ok, response.body}
     end
+  end
 
-
-    @doc """
-    Try running with a preset config:
-    """
-    def run_min_config do
-      appname = "where"
-      mach_params = %{
-        config: %{
-          image: "registry.fly.io/where:debian-nano"
-        }
-      }
-      create_machine(appname, mach_params)
+  def validate_and_run(:machine_update, [appname, machine_id], body) do
+    with {:ok, req_body} <- validate_body(body, FlyApi.UpdateMachineRequest),
+         {:ok, response} <- FlyMachines.machine_update(appname, machine_id, req_body) do
+      {:ok, response.body}
     end
-# Private Functions
+  end
+
+  def validate_and_run(:machine_stop, [appname, machine_id], body) do
+    with {:ok, req_body} <- validate_body(body, FlyApi.StopMachineRequest),
+         {:ok, response} <- FlyMachines.machine_stop(appname, machine_id, req_body) do
+      {:ok, response.body}
+    end
+  end
+
+  def validate_and_run(operation, _args, _body) do
+    {:error, {:unknown_operation, operation}}
+  end
 
   # Validates parameters using the provided schema module
-  defp validate_params(params, schema_module) do
+  defp validate_body(params, schema_module) do
     changeset = schema_module.changeset(struct(schema_module), params)
 
     if changeset.valid? do
-      # Just use the original params since they're valid
+      # Return the original params if they're valid
       {:ok, params}
     else
       errors = format_changeset_errors(changeset)
       Logger.error("Invalid params for #{inspect(schema_module)}: #{inspect(errors)}")
-      {:error, {:invalid_params, errors}}
-    end
-  end
-
-  # Apply the API function with the given arguments and handle errors
-  defp apply_api_function(api_function, args) do
-    try do
-      case apply(api_function, args) do
-        {:ok, response} -> {:ok, response}
-        {:error, error} ->
-          Logger.error("API error: #{inspect(error)}")
-          {:error, {:api_error, error}}
-      end
-    rescue
-      e ->
-        Logger.error("In apply_api_function: #{inspect(e)}")
-        {:error, {:exception, e}}
+      {:error, {:inreq_body, errors}}
     end
   end
 
