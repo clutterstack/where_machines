@@ -9,6 +9,7 @@ defmodule WhereMachines.Application do
   def start(_type, _args) do
     children = [
       WhereMachinesWeb.Telemetry,
+      WhereMachines.RateLimit,
       # WhereMachines.Repo,
       # {Ecto.Migrator,
       #   repos: Application.fetch_env!(:where_machines, :ecto_repos),

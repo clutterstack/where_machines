@@ -1,8 +1,15 @@
 defmodule WhereMachinesWeb.Router do
   use WhereMachinesWeb, :router
+  import WhereMachines.Plugs.RateLimit
 
   pipeline :browser do
     plug :accepts, ["html"]
+    plug WhereMachines.Plugs.RateLimit,
+    max_requests: 10,  # Default limit: 60 per minute
+    path_limits: %{
+      ~r{^/} => 5,          # Home page
+      ~r{^\/[^\/]+$} => 10, # path for redirects to a specific machine
+    }
     plug :fetch_session
     plug :fly_region_header_to_session
     plug :fetch_live_flash
@@ -17,7 +24,6 @@ defmodule WhereMachinesWeb.Router do
 
   scope "/", WhereMachinesWeb do
     pipe_through :browser
-
     # get "/", PageController, :home
     live "/", IndexLive
     get "/:mach_id", RedirectController, :redirect_to_machine
