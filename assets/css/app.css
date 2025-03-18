@@ -1,0 +1,23 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* This file is for your main application CSS */
+
+
+h1 {
+  @apply mb-6 text-2xl md:text-3xl font-semibold ;
+}
+
+h1, h1 code.inline {
+  @applytext-zinc-800;
+}
+
+h2 {
+  @apply mb-6 mt-4 border-b text-xl md:text-[1.65rem] font-semibold ;
+}
+
+
+h2, h2 code.inline {
+  @apply text-zinc-800;
+}
