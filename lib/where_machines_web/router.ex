@@ -1,6 +1,6 @@
 defmodule WhereMachinesWeb.Router do
   use WhereMachinesWeb, :router
-  import WhereMachines.Plugs.RateLimit
+  # import WhereMachines.Plugs.RateLimit
 
   pipeline :browser do
     plug :accepts, ["html"]
