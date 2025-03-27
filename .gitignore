@@ -5,6 +5,7 @@ lib/useless_machine/release.ex
 .github/
 .dockerignore
 fly.toml
+cluster_with_remote.sh
 
 # The directory Mix will write compiled artifacts to.
 /_build/
