@@ -9,7 +9,7 @@ defmodule WhereMachines.Plugs.RateLimit do
 
   import Plug.Conn
   require Logger
-  alias WhereMachines.RateLimit
+  alias WhereMachinesWeb.RateLimit
 
   @doc """
   Initialize the plug with options

@@ -10,7 +10,7 @@ h1 {
 }
 
 h1, h1 code.inline {
-  @applytext-zinc-800;
+  @apply text-zinc-800;
 }
 
 h2 {
@@ -20,4 +20,17 @@ h2 {
 
 h2, h2 code.inline {
   @apply text-zinc-800;
+}
+
+.panel {
+  @apply bg-[#111111] rounded-xl p-4;
+  @apply border-2 border-neutral-600;
+  /* @apply outline-2 outline-offset-6 outlne-amber-200; */
+  /* @apply w-full h-full; */
+  @apply flex flex-col justify-between items-center;
+  @apply font-mono text-zinc-400;
+  /* outline-color: #404040; 
+  outline-offset: -12px; 
+  outline-width: 2px; 
+  outline-style: solid; */
 }

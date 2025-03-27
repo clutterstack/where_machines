@@ -6,7 +6,8 @@ defmodule WhereMachines.MachineParams do
         env: %{
           "PHX_HOST": "useless-machine.fly.dev",
           "PORT": "4040",
-          "PRIMARY_REGION": "yyz"
+          "PRIMARY_REGION": "yyz",
+          "RELEASE_COOKIE": "S07wRd6hwl5zd7QRIfeDT4ph0-ndQHHfQXQYXR2L3w66-_B73BZMvA=="
         },
         guest: %{
           cpu_kind: "shared",
@@ -43,7 +44,7 @@ defmodule WhereMachines.MachineParams do
             }
           }
         ],
-        image: "registry.fly.io/useless-machine:deployment-01JPXN8GA42EMF6NGTM6NPCH30",
+        image: "registry.fly.io/useless-machine:deployment-01JQC58D7T96F6MSB295WDYBD2",
         auto_destroy: true,
         restart: %{
           policy: "on-failure",

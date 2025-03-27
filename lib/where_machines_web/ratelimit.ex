@@ -1,4 +1,4 @@
-defmodule WhereMachines.RateLimit do
+defmodule WhereMachinesWeb.RateLimit do
   use GenServer
   require Logger
 

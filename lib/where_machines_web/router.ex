@@ -5,7 +5,7 @@ defmodule WhereMachinesWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug WhereMachines.Plugs.RateLimit,
-    max_requests: 10,  # Default limit: 60 per minute
+    max_requests: 20,  # Default limit: 60 per minute
     path_limits: %{
       ~r{^/} => 5,          # Home page
       ~r{^\/[^\/]+$} => 10, # path for redirects to a specific machine

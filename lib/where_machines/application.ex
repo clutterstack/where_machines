@@ -9,7 +9,7 @@ defmodule WhereMachines.Application do
   def start(_type, _args) do
     children = [
       WhereMachinesWeb.Telemetry,
-      WhereMachines.RateLimit,
+      WhereMachinesWeb.RateLimit,
       # WhereMachines.Repo,
       # {Ecto.Migrator,
       #   repos: Application.fetch_env!(:where_machines, :ecto_repos),
@@ -19,7 +19,8 @@ defmodule WhereMachines.Application do
       # Start a worker by calling: WhereMachines.Worker.start_link(arg)
       # {WhereMachines.Worker, arg},
       # Start to serve requests, typically the last entry
-      WhereMachinesWeb.Endpoint
+      WhereMachinesWeb.Endpoint,
+      WhereMachines.ClusterState
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
