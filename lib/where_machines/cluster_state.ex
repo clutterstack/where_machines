@@ -7,13 +7,20 @@ defmodule WhereMachines.ClusterState do
   end
 
   def init(_) do
-    # get_6pn()
+    node_name = Node.self()
+    connected_nodes = Node.list()
+
+    Logger.info("ClusterState initializing on node #{node_name}. Connected nodes: #{inspect connected_nodes}")
+    Logger.info("Subscribing to app:status topic")
+
     Phoenix.PubSub.subscribe(WhereMachines.PubSub, "app:status")
+
+    Logger.info("Subscription to app:status complete")
     {:ok, %{}}
   end
 
   def handle_info({:app_started, node}, state) do
-    Logger.info("app_started message received")
+    Logger.info("✅ app_started message received from node: #{inspect node}")
     IO.puts("Application started on node: #{inspect node}")
     IO.puts("state? #{inspect state}")
     {:noreply, state}

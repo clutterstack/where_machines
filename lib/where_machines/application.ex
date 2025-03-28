@@ -19,6 +19,7 @@ defmodule WhereMachines.Application do
       # Start a worker by calling: WhereMachines.Worker.start_link(arg)
       # {WhereMachines.Worker, arg},
       # Start to serve requests, typically the last entry
+      WhereMachines.NodeObserver,
       WhereMachinesWeb.Endpoint,
       WhereMachines.ClusterState
     ]
