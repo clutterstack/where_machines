@@ -15,7 +15,9 @@ defmodule WhereMachines.Application do
       #   repos: Application.fetch_env!(:where_machines, :ecto_repos),
       #   skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:where_machines, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: WhereMachines.PubSub},
+      {Phoenix.PubSub, name: :where_pubsub},
+      # Start MachineTracker to monitor useless_machine instances
+      WhereMachines.MachineTracker,
       # Start a worker by calling: WhereMachines.Worker.start_link(arg)
       # {WhereMachines.Worker, arg},
       # Start to serve requests, typically the last entry

@@ -30,9 +30,10 @@ defmodule WhereMachinesWeb.Router do
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", WhereMachinesWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", WhereMachinesWeb do
+    pipe_through :api
+    post "/machine_status", MachineStatusController, :update
+  end
 
   # Enable LiveDashboard in development
   if Application.compile_env(:where_machines, :dev_routes) do

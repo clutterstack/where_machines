@@ -19,7 +19,7 @@ config :where_machines, WhereMachinesWeb.Endpoint,
     formats: [html: WhereMachinesWeb.ErrorHTML, json: WhereMachinesWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: WhereMachines.PubSub,
+  pubsub_server: :where_pubsub,
   live_view: [signing_salt: "2yDWHFHp"]
 
 

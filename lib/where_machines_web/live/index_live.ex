@@ -3,30 +3,44 @@ defmodule WhereMachinesWeb.IndexLive do
   alias Phoenix.LiveView.AsyncResult
   import WhereMachinesWeb.RegionMap
   alias WhereMachines.CityData
+  # NEW: Added MachineTracker alias
+  alias WhereMachines.MachineTracker
 
   require Logger
 
   @mach_params WhereMachines.MachineParams.useless_params()
-
   @app_name "useless-machine"
-
   @mach_limit 3
 
   def mount(_params, %{"fly_region" => fly_edge_region}, socket) do
+    # NEW: Subscribe to machine status updates
+    Phoenix.PubSub.subscribe(:where_pubsub, "machine_status")
+
     client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("FLY_API_TOKEN"))
-    {count, regions} = check_machines(client)
+
+    # CHANGED: Use MachineTracker instead of check_machines(client)
+    {count, regions, region_map} = MachineTracker.region_stats()
+
+    # NEW: Get map coordinates for active regions
+    coords = MachineTracker.get_active_region_coords({0, 0, 800, 391})
+
     {:ok, assign(socket,
       layout: false,
       fly_edge_region: fly_edge_region,
       client: client,
       active_regions: regions,
       machine_count: count,
+      # NEW: Store region map
+      region_map: region_map,
+      # NEW: Store map coordinates
+      map_coords: coords,
       create_status: nil,
       button_status: :idle,  # :idle, :starting, :success, :error
       button_text: "Create New Machine",
-      machines: [],
+      # CHANGED: Get machines from MachineTracker
+      machines: MachineTracker.get_all_machines(),
       page_title: "Where Machines"
-    ), temporary_assigns: [machines: []]}
+    )}
   end
 
   # bg-[1200px_auto]
@@ -54,16 +68,15 @@ defmodule WhereMachinesWeb.IndexLive do
 
         <!-- Map -->
         <div class="col-start-1 col-span-3 panel">
-
-            <!-- World Map SVG with machine indicators -->
-            <%= world_map_svg(%{coords: active_regions()}) %>
+            <!-- CHANGED: Use map_coords from MachineTracker -->
+            <%= world_map_svg(%{coords: @map_coords}) %>
 
             <!-- Overlay text -->
-            <div class=" text-xs text-zinc-200">
-              Active regions: YYZ, LAX, AMS, SYD
+            <div class="text-xs text-zinc-200">
+              <!-- CHANGED: Join active regions into a string -->
+              Active regions: <%= Enum.join(@active_regions, ", ") %>
             </div>
         </div>
-
 
         <!-- Create Machine Button -->
         <div class="panel col-start-2">
@@ -94,7 +107,6 @@ defmodule WhereMachinesWeb.IndexLive do
           </div>
 
         <div class="panel col-start-2">
-
         <%= if @create_status do %>
           <.async_result :let={result} assign={@create_status}>
             <:loading>Waiting for API response.</:loading>
@@ -108,19 +120,68 @@ defmodule WhereMachinesWeb.IndexLive do
       <% end %>
       </div>
 
+      <div class="panel col-span-3">
+        <h3 class="text-lg font-semibold text-yellow-300 mb-2">Active Machines</h3>
+        <div class="w-full overflow-x-auto">
+          <table class="min-w-full bg-zinc-800 rounded-lg">
+            <thead>
+              <tr>
+                <th class="py-2 px-4 border-b border-zinc-700 text-left">ID</th>
+                <th class="py-2 px-4 border-b border-zinc-700 text-left">Region</th>
+                <th class="py-2 px-4 border-b border-zinc-700 text-left">Status</th>
+                <th class="py-2 px-4 border-b border-zinc-700 text-left">Last Update</th>
+                <th class="py-2 px-4 border-b border-zinc-700 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for machine <- @machines do %>
+                <tr class="hover:bg-zinc-700 transition-colors">
+                  <td class="py-2 px-4 border-b border-zinc-700"><%= machine.id %></td>
+                  <td class="py-2 px-4 border-b border-zinc-700"><%= machine.region %></td>
+                  <td class="py-2 px-4 border-b border-zinc-700">
+                    <span class={status_class(machine.status)}>
+                      <%= machine.status %>
+                    </span>
+                  </td>
+                  <td class="py-2 px-4 border-b border-zinc-700">
+                    <%= format_time(machine.timestamp) %>
+                  </td>
+                  <td class="py-2 px-4 border-b border-zinc-700">
+                    <button
+                      phx-click="view_machine"
+                      phx-value-id={machine.id}
+                      class="text-yellow-400 hover:text-yellow-200">
+                      View
+                    </button>
+                  </td>
+                </tr>
+              <% end %>
+              <%= if Enum.empty?(@machines) do %>
+                <tr>
+                  <td colspan="5" class="py-4 text-center text-zinc-500">No active machines</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       </div>
     </div>
     """
   end
 
-  def active_regions() do
-    bbox = {0, 0, 800, 391}
-    [
-    CityData.city_to_svg(:YYZ, bbox),
-    CityData.latlong_to_svg({0,0}, bbox),
-    CityData.city_to_svg(:SYD, bbox)
-    ]
+  # NEW: Helper for status styling
+  defp status_class("started"), do: "px-2 py-1 rounded bg-green-800 text-green-200"
+  defp status_class("stopping"), do: "px-2 py-1 rounded bg-red-800 text-red-200"
+  defp status_class(_), do: "px-2 py-1 rounded bg-zinc-600 text-zinc-300"
+
+  # NEW: Format timestamp helper
+  defp format_time(timestamp) do
+    case DateTime.from_iso8601(timestamp) do
+      {:ok, dt, _} -> Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S")
+      _ -> timestamp
+    end
   end
 
   defp button_class(:idle), do: "btn bg-stone-400"
@@ -128,64 +189,33 @@ defmodule WhereMachinesWeb.IndexLive do
   defp button_class(:success), do: "btn bg-green-500"
   defp button_class(:error), do: "btn bg-red-500"
 
-
-  # Format datetime helper
-  defp format_datetime(datetime) do
-    datetime |> Calendar.strftime("%Y-%m-%d %H:%M")
-  end
-
   def handle_event("create_machine", _params, socket) do
-    # Logger.info("received create_machine event for app_name #{@app_name}")
     client_assign = socket.assigns.client
     {:noreply,
      socket
      |> assign(button_status: :starting, button_text: "Creating Machine", create_status: AsyncResult.loading())
-     #the :create_status assign is now an AsyncResult struct with loading: true
      |> start_async(:create_machine_task, fn -> maybe_spawn_useless_machine(client_assign) end)
     }
   end
 
-
   def handle_event("view_machine", %{"id" => machine_id}, socket) do
-    # In a real app, this would redirect to a detail page or open a modal
     Logger.info("View machine details: #{machine_id}")
     {:noreply, socket}
   end
 
-
   def handle_async(:create_machine_task, {:ok, {:ok, result}}, socket) do
-    # Success: Machine created
     Logger.info("Machine created successfully")
     Process.send_after(self(), :redirect_to_machine, 3000)
 
-    new_machine = %{
-      id: result.body["id"],
-      region: result.body["region"],
-      status: "starting",
-      created_at: DateTime.utc_now()
-    }
-
+    # CHANGED: Removed adding machine to socket
     {:noreply, assign(socket,
       button_status: :success,
       button_text: "Machine created",
-      create_status: AsyncResult.ok(result),
-      machines: [new_machine | socket.assigns.machines]
+      create_status: AsyncResult.ok(result)
     )}
   end
 
-
-  # def handle_async(:create_machine_task, {:ok, {:ok, result}}, socket) do
-  #   # Success: Machine created
-  #   Logger.info("Returned success")
-  #   Process.send_after(self(), :redirect_to_machine, 3000)
-  #   {:noreply, assign(socket,
-  #     button_status: :success,
-  #     button_text: "Machine created",
-  #     create_status: AsyncResult.ok(result))}
-  # end
-
   def handle_async(:create_machine_task, {:ok, {:error, %Req.TransportError{reason: :timeout}}}, socket) do
-    # Timeout response (408)
     Logger.error("Machine creation request timed out")
     %{create_status: create_status} = socket.assigns
     {:noreply, assign(socket,
@@ -195,16 +225,12 @@ defmodule WhereMachinesWeb.IndexLive do
   end
 
   def handle_async(:create_machine_task, {:error, %{reason: :capacity, message: message}}, socket) do
-    # App already has @mach_limit Machines
     Logger.info("No capacity: #{message}")
-    # Reset the button status after 3 seconds
     Process.send_after(self(), :reset_button, 3000)
     {:noreply, assign(socket, button_status: :error)}
   end
 
   def handle_async(:create_machine_task, {:ok, {:error, %{message: message}}}, socket) do
-    # Other error
-    Logger.info("matched handle_async(:create_machine_task, {:ok, {:error, %{message: message}}}, socket)")
     %{create_status: create_status} = socket.assigns
     Logger.error("Machine creation failed: #{message}")
     Process.send_after(self(), :reset_button, 3000)
@@ -215,8 +241,6 @@ defmodule WhereMachinesWeb.IndexLive do
   end
 
   def handle_async(:create_machine_task, {:ok, {:error, message}}, socket) do
-    # Other error
-    Logger.info("matched handle_async(:create_machine_task, {:ok, {:error, %{message: message}}}, socket)")
     %{create_status: create_status} = socket.assigns
     Logger.info("Machine creation failed: #{message}")
     {:noreply, assign(socket,
@@ -226,17 +250,13 @@ defmodule WhereMachinesWeb.IndexLive do
   end
 
   def handle_async(:create_machine_task, {:exit, %{message: message}}, socket) do
-    # Task crashed
-    Logger.error("Machine creation task crashed with :message #{message}")
-    # Reset the button status after 3 seconds
+    Logger.error("Machine creation task crashed with message: #{message}")
     Process.send_after(self(), :reset_button, 3000)
     {:noreply, assign(socket, button_status: :error)}
   end
 
   def handle_async(:create_machine_task, {:exit, something_else}, socket) do
-    # Task crashed
     Logger.error("Machine creation task crashed: #{inspect something_else}")
-    # Reset the button status after 3 seconds
     Process.send_after(self(), :reset_button, 3000)
     {:noreply, assign(socket, button_status: :error)}
   end
@@ -247,51 +267,77 @@ defmodule WhereMachinesWeb.IndexLive do
     {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine/#{mach_id}")}
   end
 
-  def handle_info(:replay_to_machine, socket) do
+  def handle_info(:machines_synced, socket) do
     mach_id = socket.assigns.create_status.result.body["id"]
-    Logger.info("About to replay to Machine #{mach_id}")
-    # Push a redirect that includes the Fly-Replay header
-    {:noreply, redirect(socket, to: "/#{mach_id}")}
+    Logger.info("About to try redirecting to https://useless-machine.fly.dev/machine/#{mach_id}")
+    {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine/#{mach_id}")}
   end
 
-  def handle_info(:redirect_w_req_header, socket) do
-    mach_id = socket.assigns.create_status.result.body["id"]
-    Logger.info("About to send request to Machine #{mach_id}")
-    # Push a redirect that includes the Fly-Replay header
-    {:noreply, redirect(socket, to: "/force_instance/#{mach_id}")}
-  end
+
+  # REMOVED: handle_info(:replay_to_machine, socket) - no longer needed
+  # REMOVED: handle_info(:redirect_w_req_header, socket) - no longer needed
 
   def handle_info(:reset_button, socket) do
     Logger.info("reset_button called")
     {:noreply, assign(socket, button_status: :idle, button_text: "Create Machine", create_status: nil)}
   end
 
-  def handle_info({:data, payload}, socket) do
-    %{count: count, regions: regions} = payload
-    Logger.info("Got a count, regions from api call")
-    {:noreply, assign(socket, active_regions: regions, machine_count: count)}
+  # REMOVED: handle_info({:data, payload}, socket) - no longer needed with MachineTracker
+
+  # NEW: Handle machine status updates from PubSub
+  def handle_info({:machine_status_changed, _machine_id, _status}, socket) do
+    # Refresh machine data from MachineTracker
+    {count, regions, region_map} = MachineTracker.region_stats()
+    coords = MachineTracker.get_active_region_coords({0, 0, 800, 391})
+
+    {:noreply, assign(socket,
+      machines: MachineTracker.get_all_machines(),
+      active_regions: regions,
+      machine_count: count,
+      region_map: region_map,
+      map_coords: coords
+    )}
+  end
+
+  def handle_info(message, socket) do
+    Logger.info("IndexLive received unknown message: #{inspect message}")
+    {:noreply, socket}
   end
 
   def maybe_spawn_useless_machine(client) do
-    {count, regions} = check_machines(client) |> dbg
-    Process.send(self(), {:data, %{count: count, regions: regions}}, [])
+    # First check tracker (fast)
+    {count, _regions, _} = MachineTracker.region_stats()
+
     if count < @mach_limit do
-      Logger.info("Capacity OK; creating a new Machine")
-      Clutterfly.FlyAPI.create_machine(client, @app_name, @mach_params)
+      # If tracker says we have capacity, verify with API (accurate)
+      case Clutterfly.Commands.get_mach_summaries(@app_name, client: client) do
+        {:ok, api_machines} ->
+          # Count running machines from API
+          running_count = Enum.count(api_machines, fn m ->
+            m["state"] == "started" || m["state"] == "running"
+          end)
+
+          if running_count < @mach_limit do
+            Logger.info("API verification confirms capacity; creating a new Machine")
+            Clutterfly.FlyAPI.create_machine(client, @app_name, @mach_params)
+          else
+            Logger.info("API check shows no capacity; not creating a new Machine")
+            {:error, %{reason: :capacity, message: "No capacity according to API check"}}
+          end
+
+        {:error, reason} ->
+          # API check failed, fall back to tracker data
+          Logger.warning("API check failed: #{inspect(reason)}. Using tracker data.")
+          if count < @mach_limit do
+            Logger.info("Capacity OK according to tracker; creating a new Machine")
+            Clutterfly.FlyAPI.create_machine(client, @app_name, @mach_params)
+          else
+            {:error, %{reason: :capacity, message: "Reached capacity; try again later."}}
+          end
+      end
     else
       Logger.info("Machine limit reached; not creating a new one.")
-      # TODO: set an assign that changes the liveview? Or show a flash message?
       {:error, %{reason: :capacity, message: "Reached capacity; try again later."}}
     end
   end
-
-  def check_machines(client) do
-    # Make the API request to get the machines list
-    with {:ok, machines} <- Clutterfly.Commands.get_mach_summaries(@app_name, client: client) do
-      # {3, ["syd", "yyz", "ams"], %{"ams" => 1, "syd" => 1, "yyz" => 1}}
-      {count, regions} = Clutterfly.Commands.region_stats(machines)
-      {count, regions}
-    end
-  end
-
 end
