@@ -135,7 +135,7 @@ defmodule WhereMachinesWeb.IndexLive do
   end
 
   def handle_event("create_machine", _params, socket) do
-    Logger.info("received create_machine event for app_name #{@app_name}")
+    # Logger.info("received create_machine event for app_name #{@app_name}")
     client_assign = socket.assigns.client
     {:noreply,
      socket

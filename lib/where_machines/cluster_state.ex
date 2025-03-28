@@ -7,8 +7,8 @@ defmodule WhereMachines.ClusterState do
   end
 
   def init(_) do
-    get_6pn()
-    Phoenix.PubSub.subscribe(WhereMachines.PubSub, "app:started")
+    # get_6pn()
+    Phoenix.PubSub.subscribe(WhereMachines.PubSub, "app:status")
     {:ok, %{}}
   end
 

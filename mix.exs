@@ -56,8 +56,8 @@ defmodule WhereMachines.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
-      # {:clutterfly, github: "clutterstack/clutterfly", branch: "main", override: true}
-      {:clutterfly, path: "~/Downloads/SynologyDrive/Projects/2025-03-fly-machine-tools/clutterfly", override: true}
+      {:clutterfly, github: "clutterstack/clutterfly", branch: "main", override: true}
+      # {:clutterfly, path: "~/Downloads/SynologyDrive/Projects/2025-03-fly-machine-tools/clutterfly", override: true}
     ]
   end
 
