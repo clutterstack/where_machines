@@ -3,7 +3,8 @@ defmodule WhereMachinesWeb.MachineStatusController do
   require Logger
 
   @doc """
-  Receives status updates from useless_machine instances
+  Receives status updates via HTTP POST requests from useless_machine instances, and invokes MachineTracker.update_status() which updates the ETS table tracking Useless Machines, and broadcasts the update on PubSub, so that IndexLive knows to get the latest data from the table.
+
   Expected payload format:
   {
     "machine_id": "12345",
@@ -26,7 +27,7 @@ defmodule WhereMachinesWeb.MachineStatusController do
         timestamp: timestamp
       })
 
-      Logger.info("Received status update for machine #{machine_id}: #{status}")
+      Logger.info("Received HTTP status update from Useless Machine for #{machine_id}: #{status}")
 
       conn
       |> put_status(:ok)

@@ -2,8 +2,6 @@ defmodule WhereMachinesWeb.IndexLive do
   use WhereMachinesWeb, :live_view
   alias Phoenix.LiveView.AsyncResult
   import WhereMachinesWeb.RegionMap
-  alias WhereMachines.CityData
-  # NEW: Added MachineTracker alias
   alias WhereMachines.MachineTracker
 
   require Logger
@@ -11,18 +9,19 @@ defmodule WhereMachinesWeb.IndexLive do
   @mach_params WhereMachines.MachineParams.useless_params()
   @app_name "useless-machine"
   @mach_limit 3
+  @bbox {0, 0, 800, 391}
 
   def mount(_params, %{"fly_region" => fly_edge_region}, socket) do
-    # NEW: Subscribe to machine status updates
+    # Subscribe to machine status updates
+    Logger.info("IndexLive subscribing to :where_pubsub, machine_status messages")
     Phoenix.PubSub.subscribe(:where_pubsub, "machine_status")
 
     client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("FLY_API_TOKEN"))
 
-    # CHANGED: Use MachineTracker instead of check_machines(client)
-    {count, regions, region_map} = MachineTracker.region_stats()
+    {count, regions, region_count} = MachineTracker.region_stats()
 
     # NEW: Get map coordinates for active regions
-    coords = MachineTracker.get_active_region_coords({0, 0, 800, 391})
+    coords = MachineTracker.get_active_region_coords(@bbox)
 
     {:ok, assign(socket,
       layout: false,
@@ -30,14 +29,12 @@ defmodule WhereMachinesWeb.IndexLive do
       client: client,
       active_regions: regions,
       machine_count: count,
-      # NEW: Store region map
-      region_map: region_map,
-      # NEW: Store map coordinates
+      region_count: region_count, # we don't actually use this rn
       map_coords: coords,
       create_status: nil,
       button_status: :idle,  # :idle, :starting, :success, :error
       button_text: "Create New Machine",
-      # CHANGED: Get machines from MachineTracker
+      new_machine: nil,
       machines: MachineTracker.get_all_machines(),
       page_title: "Where Machines"
     )}
@@ -73,7 +70,6 @@ defmodule WhereMachinesWeb.IndexLive do
 
             <!-- Overlay text -->
             <div class="text-xs text-zinc-200">
-              <!-- CHANGED: Join active regions into a string -->
               Active regions: <%= Enum.join(@active_regions, ", ") %>
             </div>
         </div>
@@ -176,7 +172,6 @@ defmodule WhereMachinesWeb.IndexLive do
   defp status_class("stopping"), do: "px-2 py-1 rounded bg-red-800 text-red-200"
   defp status_class(_), do: "px-2 py-1 rounded bg-zinc-600 text-zinc-300"
 
-  # NEW: Format timestamp helper
   defp format_time(timestamp) do
     case DateTime.from_iso8601(timestamp) do
       {:ok, dt, _} -> Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S")
@@ -205,9 +200,7 @@ defmodule WhereMachinesWeb.IndexLive do
 
   def handle_async(:create_machine_task, {:ok, {:ok, result}}, socket) do
     Logger.info("Machine created successfully")
-    Process.send_after(self(), :redirect_to_machine, 3000)
-
-    # CHANGED: Removed adding machine to socket
+    # Process.send_after(self(), :redirect_to_machine, 3000)
     {:noreply, assign(socket,
       button_status: :success,
       button_text: "Machine created",
@@ -267,37 +260,57 @@ defmodule WhereMachinesWeb.IndexLive do
     {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine/#{mach_id}")}
   end
 
-  def handle_info(:machines_synced, socket) do
-    mach_id = socket.assigns.create_status.result.body["id"]
-    Logger.info("About to try redirecting to https://useless-machine.fly.dev/machine/#{mach_id}")
-    {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine/#{mach_id}")}
-  end
-
-
-  # REMOVED: handle_info(:replay_to_machine, socket) - no longer needed
-  # REMOVED: handle_info(:redirect_w_req_header, socket) - no longer needed
-
   def handle_info(:reset_button, socket) do
     Logger.info("reset_button called")
     {:noreply, assign(socket, button_status: :idle, button_text: "Create Machine", create_status: nil)}
   end
 
-  # REMOVED: handle_info({:data, payload}, socket) - no longer needed with MachineTracker
+    ########################
+    # Messages from PubSub #
+    ########################
 
-  # NEW: Handle machine status updates from PubSub
-  def handle_info({:machine_status_changed, _machine_id, _status}, socket) do
-    # Refresh machine data from MachineTracker
-    {count, regions, region_map} = MachineTracker.region_stats()
-    coords = MachineTracker.get_active_region_coords({0, 0, 800, 391})
 
+  def handle_info({:machines_synced}, socket) do
+    Logger.info("IndexLive got a :machines_synced message from PubSub")
+    {:noreply, socket}
+  end
+
+  def handle_info({:machine_status_changed, machine_id, status_map}, socket) do
+    Logger.info("IndexLive handling a :machine_status_changed message for machine #{machine_id}")
+    # If that's our Machine started, redirect the client to the useless machine app
+    our_mach = socket.assigns.create_status.result.body["id"]
+    Logger.info("our_mach: #{our_mach}; machine: #{machine_id}; status_map: #{inspect status_map}")
+    status = status_map["status"]
+    if machine_id == our_mach and status == "started" do
+      Logger.info("That's our Machine started. Now redirect")
+      Process.send_after(self(), :redirect_to_machine, 100)
+    end
+
+    # Refresh machine data from MachineTracker regardless, for map and stats display
+    {count, regions, region_count} = MachineTracker.region_stats()
+    coords = MachineTracker.get_active_region_coords(@bbox)
     {:noreply, assign(socket,
       machines: MachineTracker.get_all_machines(),
       active_regions: regions,
       machine_count: count,
-      region_map: region_map,
+      region_count: region_count,
       map_coords: coords
     )}
   end
+
+  # def handle_info({:machine_status_changed, _machine_id, _status}, socket) do
+  #   # Refresh machine data from MachineTracker
+  #   {count, regions, region_count} = MachineTracker.region_stats()
+  #   coords = MachineTracker.get_active_region_coords(@bbox)
+
+  #   {:noreply, assign(socket,
+  #     machines: MachineTracker.get_all_machines(),
+  #     active_regions: regions,
+  #     machine_count: count,
+  #     region_count: region_count,
+  #     map_coords: coords
+  #   )}
+  # end
 
   def handle_info(message, socket) do
     Logger.info("IndexLive received unknown message: #{inspect message}")
@@ -318,7 +331,7 @@ defmodule WhereMachinesWeb.IndexLive do
           end)
 
           if running_count < @mach_limit do
-            Logger.info("API verification confirms capacity; creating a new Machine")
+            Logger.info("API says we have capacity; creating a new Machine")
             Clutterfly.FlyAPI.create_machine(client, @app_name, @mach_params)
           else
             Logger.info("API check shows no capacity; not creating a new Machine")
@@ -327,9 +340,9 @@ defmodule WhereMachinesWeb.IndexLive do
 
         {:error, reason} ->
           # API check failed, fall back to tracker data
-          Logger.warning("API check failed: #{inspect(reason)}. Using tracker data.")
+          Logger.warning("API check failed: #{inspect(reason)}. Falling back to tracker data.")
           if count < @mach_limit do
-            Logger.info("Capacity OK according to tracker; creating a new Machine")
+            Logger.info("Tracker indicates capacity; trying to launch a new Machine")
             Clutterfly.FlyAPI.create_machine(client, @app_name, @mach_params)
           else
             {:error, %{reason: :capacity, message: "Reached capacity; try again later."}}
