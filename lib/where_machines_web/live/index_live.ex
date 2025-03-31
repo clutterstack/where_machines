@@ -3,18 +3,18 @@ defmodule WhereMachinesWeb.IndexLive do
   alias Phoenix.LiveView.AsyncResult
   import WhereMachinesWeb.RegionMap
   alias WhereMachines.MachineTracker
+  import WhereMachines.MachineLauncher
+
 
   require Logger
 
-  @mach_params WhereMachines.MachineParams.useless_params()
-  @app_name "useless-machine"
-  @mach_limit 3
   @bbox {0, 0, 800, 391}
 
   def mount(_params, %{"fly_region" => fly_edge_region}, socket) do
     # Subscribe to machine status updates
-    Logger.info("IndexLive subscribing to :where_pubsub, machine_status messages")
-    Phoenix.PubSub.subscribe(:where_pubsub, "machine_status")
+    this_machine = System.get_env("FLY_MACHINE_ID")
+    Logger.info("IndexLive subscribing to :where_pubsub, to:#{this_machine} messages")
+    Phoenix.PubSub.subscribe(:where_pubsub, "to:#{this_machine}")
 
     client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("FLY_API_TOKEN"))
 
@@ -22,7 +22,7 @@ defmodule WhereMachinesWeb.IndexLive do
 
     # NEW: Get map coordinates for active regions
     coords = MachineTracker.get_active_region_coords(@bbox)
-
+    machines = MachineTracker.get_all_machines()
     {:ok, assign(socket,
       layout: false,
       fly_edge_region: fly_edge_region,
@@ -34,8 +34,7 @@ defmodule WhereMachinesWeb.IndexLive do
       create_status: nil,
       button_status: :idle,  # :idle, :starting, :success, :error
       button_text: "Create New Machine",
-      new_machine: nil,
-      machines: MachineTracker.get_all_machines(),
+      machines: machines,
       page_title: "Where Machines"
     )}
   end
@@ -200,7 +199,6 @@ defmodule WhereMachinesWeb.IndexLive do
 
   def handle_async(:create_machine_task, {:ok, {:ok, result}}, socket) do
     Logger.info("Machine created successfully")
-    # Process.send_after(self(), :redirect_to_machine, 3000)
     {:noreply, assign(socket,
       button_status: :success,
       button_text: "Machine created",
@@ -269,24 +267,41 @@ defmodule WhereMachinesWeb.IndexLive do
     # Messages from PubSub #
     ########################
 
+  # :machine_ready
+  # :replaced_from_api
+  # :machine_added
+  # :machine_removed
+  # :cleanup
 
-  def handle_info({:machines_synced}, socket) do
-    Logger.info("IndexLive got a :machines_synced message from PubSub")
+  def handle_info({:table_updated, :machine_ready = message}, socket) do
+    Logger.info("IndexLive got a :table_updated message from PubSub: #{inspect message}. Update assigns from the table and redirect.")
+    Process.send_after(self(), :redirect_to_machine, 100)
+    update_assigns_from_table(socket)
+  end
+
+  def handle_info({:table_updated, message}, socket) do
+    Logger.info("IndexLive got a :table_updated message from PubSub: #{inspect message}. Updating assigns from the table.")
+    update_assigns_from_table(socket)
+  end
+
+  def handle_info({:machine_stopped, machine_id}, socket) do
+    Logger.info("IndexLive: :machine_stopped for #{machine_id}. Update assigns from the table.")
+    # Refresh machine data from MachineTracker for map and stats display
+    update_assigns_from_table(socket)
+  end
+
+  def handle_info({:cleanup}, socket) do
+    Logger.info("IndexLive: :cleanup. Update assigns from the table.")
+    # Refresh machine data from MachineTracker for map and stats display
+    update_assigns_from_table(socket)
+  end
+
+  def handle_info(message, socket) do
+    Logger.info("IndexLive received unknown message: #{inspect message}")
     {:noreply, socket}
   end
 
-  def handle_info({:machine_status_changed, machine_id, status_map}, socket) do
-    Logger.info("IndexLive handling a :machine_status_changed message for machine #{machine_id}")
-    # If that's our Machine started, redirect the client to the useless machine app
-    our_mach = socket.assigns.create_status.result.body["id"]
-    Logger.info("our_mach: #{our_mach}; machine: #{machine_id}; status_map: #{inspect status_map}")
-    status = status_map["status"]
-    if machine_id == our_mach and status == "started" do
-      Logger.info("That's our Machine started. Now redirect")
-      Process.send_after(self(), :redirect_to_machine, 100)
-    end
-
-    # Refresh machine data from MachineTracker regardless, for map and stats display
+  defp update_assigns_from_table(socket) do
     {count, regions, region_count} = MachineTracker.region_stats()
     coords = MachineTracker.get_active_region_coords(@bbox)
     {:noreply, assign(socket,
@@ -298,59 +313,4 @@ defmodule WhereMachinesWeb.IndexLive do
     )}
   end
 
-  # def handle_info({:machine_status_changed, _machine_id, _status}, socket) do
-  #   # Refresh machine data from MachineTracker
-  #   {count, regions, region_count} = MachineTracker.region_stats()
-  #   coords = MachineTracker.get_active_region_coords(@bbox)
-
-  #   {:noreply, assign(socket,
-  #     machines: MachineTracker.get_all_machines(),
-  #     active_regions: regions,
-  #     machine_count: count,
-  #     region_count: region_count,
-  #     map_coords: coords
-  #   )}
-  # end
-
-  def handle_info(message, socket) do
-    Logger.info("IndexLive received unknown message: #{inspect message}")
-    {:noreply, socket}
-  end
-
-  def maybe_spawn_useless_machine(client) do
-    # First check tracker (fast)
-    {count, _regions, _} = MachineTracker.region_stats()
-
-    if count < @mach_limit do
-      # If tracker says we have capacity, verify with API (accurate)
-      case Clutterfly.Commands.get_mach_summaries(@app_name, client: client) do
-        {:ok, api_machines} ->
-          # Count running machines from API
-          running_count = Enum.count(api_machines, fn m ->
-            m["state"] == "started" || m["state"] == "running"
-          end)
-
-          if running_count < @mach_limit do
-            Logger.info("API says we have capacity; creating a new Machine")
-            Clutterfly.FlyAPI.create_machine(client, @app_name, @mach_params)
-          else
-            Logger.info("API check shows no capacity; not creating a new Machine")
-            {:error, %{reason: :capacity, message: "No capacity according to API check"}}
-          end
-
-        {:error, reason} ->
-          # API check failed, fall back to tracker data
-          Logger.warning("API check failed: #{inspect(reason)}. Falling back to tracker data.")
-          if count < @mach_limit do
-            Logger.info("Tracker indicates capacity; trying to launch a new Machine")
-            Clutterfly.FlyAPI.create_machine(client, @app_name, @mach_params)
-          else
-            {:error, %{reason: :capacity, message: "Reached capacity; try again later."}}
-          end
-      end
-    else
-      Logger.info("Machine limit reached; not creating a new one.")
-      {:error, %{reason: :capacity, message: "Reached capacity; try again later."}}
-    end
-  end
 end

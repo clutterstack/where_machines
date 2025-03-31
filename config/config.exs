@@ -22,6 +22,16 @@ config :where_machines, WhereMachinesWeb.Endpoint,
   pubsub_server: :where_pubsub,
   live_view: [signing_salt: "2yDWHFHp"]
 
+  # Configures the endpoint
+  config :where_machines, WhereMachinesWeb.APIEndpoint,
+  url: [host: "localhost"],
+  adapter: Bandit.PhoenixAdapter,
+  render_errors: [
+    formats: [html: WhereMachinesWeb.ErrorHTML, json: WhereMachinesWeb.ErrorJSON],
+    layout: false
+  ],
+  pubsub_server: :where_pubsub
+
 
 # Configure esbuild (the version is required)
 config :esbuild,

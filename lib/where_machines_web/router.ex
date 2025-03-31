@@ -30,6 +30,7 @@ defmodule WhereMachinesWeb.Router do
   end
 
   # Other scopes may use custom stacks.
+  # TODO: make /api 6pn only -- put it on a different port
   scope "/api", WhereMachinesWeb do
     pipe_through :api
     post "/machine_status", MachineStatusController, :update

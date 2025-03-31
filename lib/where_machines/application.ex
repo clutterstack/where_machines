@@ -23,6 +23,7 @@ defmodule WhereMachines.Application do
       # Start to serve requests, typically the last entry
       WhereMachines.NodeObserver,
       WhereMachinesWeb.Endpoint,
+      WhereMachinesWeb.APIEndpoint,
       WhereMachines.ClusterState
     ]
 
@@ -37,6 +38,7 @@ defmodule WhereMachines.Application do
   @impl true
   def config_change(changed, _new, removed) do
     WhereMachinesWeb.Endpoint.config_change(changed, removed)
+    WhereMachinesWeb.APIEndpoint.config_change(changed, removed)
     :ok
   end
 

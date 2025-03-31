@@ -58,6 +58,21 @@ config :where_machines, WhereMachinesWeb.Endpoint,
     ]
   ]
 
+# The private API endpoint
+config :where_machines, WhereMachinesWeb.APIEndpoint,
+# Binding to loopback ipv4 address prevents access from other machines.
+# Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
+http: [ip: {127, 0, 0, 1}, port: 4001],
+check_origin: false,
+code_reloader: true,
+debug_errors: true,
+secret_key_base: "Lx6d9GSxLH6NtW8O39Nuzcpm3bdpJMJ5Gvez6awJwK9oKRRQMCSehN8nN5ivdkZ3",
+watchers: [
+  esbuild: {Esbuild, :install_and_run, [:where_machines, ~w(--sourcemap=inline --watch)]},
+  tailwind: {Tailwind, :install_and_run, [:where_machines, ~w(--watch)]}
+]
+
+
 # Enable dev routes for dashboard and mailbox
 config :where_machines, dev_routes: true
 

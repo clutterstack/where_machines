@@ -1,13 +1,15 @@
 defmodule WhereMachines.MachineParams do
 
   def useless_params do
+    requestor_ip = System.get_env("FLY_PRIVATE_IP")
     %{
       config: %{
         env: %{
           "PHX_HOST": "useless-machine.fly.dev",
           "PORT": "4040",
           "PRIMARY_REGION": "yyz",
-          "RELEASE_COOKIE": "S07wRd6hwl5zd7QRIfeDT4ph0-ndQHHfQXQYXR2L3w66-_B73BZMvA=="
+          "REQUESTOR_IP": requestor_ip,
+          "REQUESTOR_API_PORT": "4001"
         },
         guest: %{
           cpu_kind: "shared",
@@ -44,7 +46,7 @@ defmodule WhereMachines.MachineParams do
             }
           }
         ],
-        image: "registry.fly.io/useless-machine:deployment-01JQG2RX0PE45CXQ21JD2ATHAJ",
+        image: "registry.fly.io/useless-machine:deployment-01JQN5VA0XXT5E3S3BVPY8ZDR1",
         auto_destroy: true,
         restart: %{
           policy: "on-failure",

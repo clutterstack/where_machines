@@ -18,6 +18,7 @@ import Config
 # script that automatically sets the env var above.
 if System.get_env("PHX_SERVER") do
   config :where_machines, WhereMachinesWeb.Endpoint, server: true
+  config :where_machines, WhereMachinesWeb.APIEndpoint, server: true
 end
 
 if config_env() == :prod do
@@ -60,6 +61,20 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0},
       port: port
     ],
+    secret_key_base: secret_key_base
+
+  private_ip = System.get_env("FLY_PRIVATE_IP")
+  config :where_machines, WhereMachinesWeb.APIEndpoint,
+    url: [host: "[#{private_ip}]", port: 4001, scheme: "http"],
+    check_origin: ["http://[#{private_ip}]:4001"],
+    http: [
+      # Enable IPv6 and bind on all interfaces.
+      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
+      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
+      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
+      ip: {0, 0, 0, 0, 0, 0, 0, 0},
+      port: 4001
+      ],
     secret_key_base: secret_key_base
 
 

@@ -39,11 +39,10 @@ defmodule WhereMachines.CityData do
     }
 
 def city_to_svg(city, bbox) do
-  IO.inspect(city, label: "city")
-  {long, lat} = @cities[city]
+  city_atom = String.to_existing_atom(city)
+  {long, lat} = @cities[city_atom]
   latlong_to_svg({long, lat}, bbox)
 end
-
 
 def latlong_to_svg({long, lat}, {x_min, y_min, x_max, y_max}) do
   svg_width = x_max - x_min
