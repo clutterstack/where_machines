@@ -35,7 +35,7 @@ defmodule WhereMachines.Plugs.RateLimit do
   def call(conn, opts) do
     ip = get_client_ip(conn)
     path = conn.request_path
-    Logger.info("RateLimit plug called with ip #{ip}")
+    Logger.debug("RateLimit plug called with ip #{ip}")
 
     # Determine the limit for this path
     limit = get_limit_for_path(path, opts)

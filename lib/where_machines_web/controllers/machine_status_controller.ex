@@ -1,4 +1,4 @@
-defmodule WhereMachinesWeb.MachineStatusController do
+defmodule WhereMachinesWeb.APIController do
   use WhereMachinesWeb, :controller
   require Logger
 

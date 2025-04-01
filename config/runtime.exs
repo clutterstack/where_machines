@@ -65,7 +65,7 @@ if config_env() == :prod do
 
   private_ip = System.get_env("FLY_PRIVATE_IP")
   config :where_machines, WhereMachinesWeb.APIEndpoint,
-    url: [host: "[#{private_ip}]", port: 4001, scheme: "http"],
+    url: [host: private_ip, port: 4001, scheme: "http"],
     check_origin: ["http://[#{private_ip}]:4001"],
     http: [
       # Enable IPv6 and bind on all interfaces.

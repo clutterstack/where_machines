@@ -1,16 +1,26 @@
-<header class="px-4 sm:px-6 lg:px-8">
-  <div class="flex items-center justify-between border-b border-zinc-100 py-3 text-sm">
-    <div class="flex items-center gap-4 font-semibold leading-6 text-zinc-900">
-      <a href="https://bsky.app/profile/clutterstack.com" class="hover:text-zinc-700">
+<!-- <div class="  items-center"> -->
+<div class="px-4 py-0 sm:px-6 lg:px-8 max-w-2xl xl:max-w-4xl mx-auto bg-neutral-900">
+
+  <div class="p-6 bg-[url:var(--bg-image)] bg-no-repeat bg-cover" style={"--bg-image: url(#{~p'/images/curves_bigger.svg'}); --bg-pos: right top -200px;"}>
+    <header class="py-2 col-span-4 col-start-1">
+      <h1 class="text-4xl font-mono font-bold text-[#DAA520] tracking-widest mb-2">WHERE MACHINES</h1>
+      <div class="flex items-center gap-4 font-semibold leading-6 text-zinc-200">
+        <a href="https://bsky.app/profile/clutterstack.com" class="hover:text-zinc-700">
         Bluesky
-      </a>
-      <a href="https://github.com/clutterstack" class="hover:text-zinc-700">
+        </a>
+        <a href="https://github.com/clutterstack" class="hover:text-zinc-700">
         GitHub
-      </a>
-    </div>
+        </a>
+      </div>
+      <p class="text-zinc-400">Create a Useless Machine in the cloud</p>
+    </header>
+    <main class="p-0">
+      <.flash_group flash={@flash} />
+      <%= @inner_content %>
+    </main>
   </div>
-</header>
-<main class="px-4 py-0 sm:px-6 lg:px-8 max-w-2xl xl:max-w-4xl mx-auto bg-neutral-900">
-    <.flash_group flash={@flash} />
-    <%= @inner_content %>
-</main>
+</div>
+
+
+
+

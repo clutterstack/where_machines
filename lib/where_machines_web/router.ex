@@ -26,14 +26,14 @@ defmodule WhereMachinesWeb.Router do
     pipe_through :browser
     # get "/", PageController, :home
     live "/", IndexLive
-    get "/:mach_id", RedirectController, :redirect_to_machine
+    get "/machine/:mach_id", RedirectController, :redirect_to_machine
   end
 
   # Other scopes may use custom stacks.
   # TODO: make /api 6pn only -- put it on a different port
   scope "/api", WhereMachinesWeb do
     pipe_through :api
-    post "/machine_status", MachineStatusController, :update
+    post "/machine_status", APIController, :update
   end
 
   # Enable LiveDashboard in development

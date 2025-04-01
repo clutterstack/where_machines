@@ -14,7 +14,7 @@ defmodule WhereMachines.MachineTracker do
 
   @doc """
   Tell self to handle an update from a Machine to the HTTP endpoint.
-  This is invoked by the MachineStatusController module when it receives
+  This is invoked by the APIController module when it receives
   an update directly from a Useless Machine by HTTP.
 
   status_map is expected to be of the form
@@ -121,7 +121,7 @@ defmodule WhereMachines.MachineTracker do
   # Broadcast to cluster so all MachineTrackers can add it to their table.
   def handle_cast({:update_from_http, machine_id,  %{status: "started"} = status_map}, state) do
     Logger.info("MachineTracker handling :update_from_http message for a started Machine.")
-    broadcast_local_table_updated(:machine_ready)
+    broadcast_local_table_updated({:machine_ready, machine_id})
     Phoenix.PubSub.broadcast(:where_pubsub, "um_table", {:machine_added, machine_id, status_map})
     {:noreply, state}
   end
@@ -136,7 +136,7 @@ defmodule WhereMachines.MachineTracker do
   end
 
   def handle_cast({:update_all_from_api, api_machines}, state) do
-    api_entries = api_machines
+    api_entries = api_machines |> IO.inspect(label: "Machines from API:")
         |> Enum.map(fn machine ->
           {machine["id"],
           %{
@@ -199,7 +199,7 @@ defmodule WhereMachines.MachineTracker do
   # Insert a new Machine into the table and tell the local topic the table's updated
   @impl true
   def handle_info({:machine_added, machine_id, status_map}, state) do
-    Logger.info("PubSub :machine_added message received")
+    Logger.info("MachineTracker: PubSub :machine_added message received")
     # Store in ETS
     :ets.insert(@table_name, {machine_id, status_map})
     broadcast_local_table_updated(:machine_added)
@@ -209,7 +209,7 @@ defmodule WhereMachines.MachineTracker do
   # Remove a finished Machine from the table and tell the local topic the table's updated
   @impl true
   def handle_info({:machine_stopped, machine_id}, state) do
-    Logger.info("PubSub :machine_stopped message received")
+    Logger.info("MachineTracker: PubSub :machine_stopped message received")
     # Remove from ETS
     :ets.delete(@table_name, machine_id)
     broadcast_local_table_updated(:machine_removed)

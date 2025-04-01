@@ -44,62 +44,44 @@ defmodule WhereMachinesWeb.IndexLive do
   # border border-yellow-200
   def render(assigns) do
     ~H"""
-    <div class="p-6 bg-[url:var(--bg-image)] bg-no-repeat bg-cover"
-      style={"--bg-image: url(#{~p'/images/curves_bigger.svg'}); --bg-pos: right top -200px;" }
-    >
-        <div class="min-h-screen container grid grid-cols-4 content-start gap-8 max-w-3xl mx-auto items-center">
+    <div class="min-h-screen container grid grid-cols-4 content-start gap-8 items-center">
 
-        <header class="py-2 col-span-3 col-start-1">
-          <h1 class="text-4xl font-mono font-bold text-[#DAA520] tracking-widest mb-2">WHERE MACHINES</h1>
-          <div class="flex items-center gap-4 font-semibold leading-6 text-zinc-200">
-      <a href="https://bsky.app/profile/clutterstack.com" class="hover:text-zinc-700">
-        Bluesky
-      </a>
-      <a href="https://github.com/clutterstack" class="hover:text-zinc-700">
-        GitHub
-      </a>
-    </div>
-          <p class="text-zinc-400">Create a Useless Machine in the cloud</p>
-        </header>
-
-        <!-- Map -->
-        <div class="col-start-1 col-span-3 panel">
-            <!-- CHANGED: Use map_coords from MachineTracker -->
-            <%= world_map_svg(%{coords: @map_coords}) %>
-
-            <!-- Overlay text -->
-            <div class="text-xs text-zinc-200">
-              Active regions: <%= Enum.join(@active_regions, ", ") %>
-            </div>
+      <!-- Map -->
+      <div class="col-start-1 col-span-3 panel">
+        <%= world_map_svg(%{coords: @map_coords}) %>
+        <!-- Overlay text -->
+        <div class="text-xs text-zinc-200">
+          Active regions: <%= Enum.join(@active_regions, ", ") %>
         </div>
+      </div>
 
-        <!-- Create Machine Button -->
-        <div class="panel col-start-2">
-          <div>Your Fly.io edge region is <%= @fly_edge_region %></div>
-          <div class="text-2xl">START</div>
+      <!-- Create Machine Button -->
+      <div class="panel col-start-2">
+        <div>Your Fly.io edge region is <%= @fly_edge_region %></div>
+        <div class="text-2xl">START</div>
 
-            <!-- Outer circle -->
-            <div class="relative rounded-full border-2 border-zinc-700 w-20 h-20 flex justify-center items-center">
+          <!-- Outer circle -->
+          <div class="relative rounded-full border-2 border-zinc-700 w-20 h-20 flex justify-center items-center">
 
-            <!-- Button -->
-            <button
-              phx-click={@button_status === :idle && "create_machine" || nil}
-              disabled={@button_status !== :idle}
-              class={["absolute
-                      w-16 h-16 rounded-full
-                      border-1 border-[#DAA520]
-                      text-transparent
-                      cursor-pointer z-10
-                      shadow-lg
-                      hover:shadow-xl
-                      active:scale-95
-                      transition-all duration-300",
-                      button_class(@button_status)
-                      ]}>
-              <%= @button_text %>
-            </button>
-            </div>
+          <!-- Button -->
+          <button
+            phx-click={@button_status === :idle && "create_machine" || nil}
+            disabled={@button_status !== :idle}
+            class={["absolute
+                    w-16 h-16 rounded-full
+                    border-1 border-[#DAA520]
+                    text-transparent
+                    cursor-pointer z-10
+                    shadow-lg
+                    hover:shadow-xl
+                    active:scale-95
+                    transition-all duration-300",
+                    button_class(@button_status)
+                    ]}>
+            <%= @button_text %>
+          </button>
           </div>
+        </div>
 
         <div class="panel col-start-2">
         <%= if @create_status do %>
@@ -125,7 +107,6 @@ defmodule WhereMachinesWeb.IndexLive do
                 <th class="py-2 px-4 border-b border-zinc-700 text-left">Region</th>
                 <th class="py-2 px-4 border-b border-zinc-700 text-left">Status</th>
                 <th class="py-2 px-4 border-b border-zinc-700 text-left">Last Update</th>
-                <th class="py-2 px-4 border-b border-zinc-700 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -141,14 +122,6 @@ defmodule WhereMachinesWeb.IndexLive do
                   <td class="py-2 px-4 border-b border-zinc-700">
                     <%= format_time(machine.timestamp) %>
                   </td>
-                  <td class="py-2 px-4 border-b border-zinc-700">
-                    <button
-                      phx-click="view_machine"
-                      phx-value-id={machine.id}
-                      class="text-yellow-400 hover:text-yellow-200">
-                      View
-                    </button>
-                  </td>
                 </tr>
               <% end %>
               <%= if Enum.empty?(@machines) do %>
@@ -159,8 +132,6 @@ defmodule WhereMachinesWeb.IndexLive do
             </tbody>
           </table>
         </div>
-      </div>
-
       </div>
     </div>
     """
@@ -190,11 +161,6 @@ defmodule WhereMachinesWeb.IndexLive do
      |> assign(button_status: :starting, button_text: "Creating Machine", create_status: AsyncResult.loading())
      |> start_async(:create_machine_task, fn -> maybe_spawn_useless_machine(client_assign) end)
     }
-  end
-
-  def handle_event("view_machine", %{"id" => machine_id}, socket) do
-    Logger.info("View machine details: #{machine_id}")
-    {:noreply, socket}
   end
 
   def handle_async(:create_machine_task, {:ok, {:ok, result}}, socket) do
@@ -256,6 +222,8 @@ defmodule WhereMachinesWeb.IndexLive do
     mach_id = socket.assigns.create_status.result.body["id"]
     Logger.info("About to try redirecting to https://useless-machine.fly.dev/machine/#{mach_id}")
     {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine/#{mach_id}")}
+    # {:noreply, redirect(socket, external: "/machine/#{mach_id}")}
+
   end
 
   def handle_info(:reset_button, socket) do
@@ -273,10 +241,20 @@ defmodule WhereMachinesWeb.IndexLive do
   # :machine_removed
   # :cleanup
 
-  def handle_info({:table_updated, :machine_ready = message}, socket) do
-    Logger.info("IndexLive got a :table_updated message from PubSub: #{inspect message}. Update assigns from the table and redirect.")
-    Process.send_after(self(), :redirect_to_machine, 100)
-    update_assigns_from_table(socket)
+  def handle_info({:table_updated, {:machine_ready, machine_id}}, socket) do
+    Logger.info("IndexLive got a :table_updated message from PubSub: {:machine_ready, #{machine_id}}.")
+    # If that's our Machine started, redirect the client to the useless machine app
+    our_mach = socket.assigns.create_status.result.body["id"]
+    Logger.info("our_mach: #{our_mach}; machine: #{machine_id}")
+
+    if machine_id == our_mach do
+      Logger.info("That's our Machine. Update assigns from the table and redirect.")
+      Process.send_after(self(), :redirect_to_machine, 100)
+      update_assigns_from_table(socket)
+    else
+      Logger.info("Not our Machine. Update assigns but don't redirect.")
+      update_assigns_from_table(socket)
+    end
   end
 
   def handle_info({:table_updated, message}, socket) do
