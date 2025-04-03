@@ -12,18 +12,18 @@ defmodule WhereMachines.MachineTracker do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  @doc """
-  Tell self to handle an update from a Machine to the HTTP endpoint.
-  This is invoked by the APIController module when it receives
-  an update directly from a Useless Machine by HTTP.
+  #  @doc """
+  # Tell self to handle an update from a Machine to the HTTP endpoint.
+  # This is invoked by the APIController module when it receives
+  # an update directly from a Useless Machine by HTTP.
 
-  status_map is expected to be of the form
-  %{status: status, region: region, timestamp: timestamp}
-  """
-  def update_from_http(machine_id, status_map) do
-    Logger.info("MachineTracker update_from_http invoked for machine #{machine_id}; casting :update_from_http message")
-    GenServer.cast(__MODULE__, {:update_from_http, machine_id, status_map})
-  end
+  # status_map is expected to be of the form
+  # %{status: status, region: region, timestamp: timestamp}
+  #"""
+  # def update_from_http(machine_id, status_map) do
+  #   Logger.info("MachineTracker update_from_http invoked for machine #{machine_id}; casting :update_from_http message")
+  #   GenServer.cast(__MODULE__, {:update_from_http, machine_id, status_map})
+  # end
 
   @doc """
   Call the api for a list of Machines and then update the table with them
@@ -45,8 +45,15 @@ defmodule WhereMachines.MachineTracker do
 
   @doc """
   Read the current status of all machines from the ETS table.
+
+  :ets.tab2list(@table_name) #=> [
+  {"84e475f2730298",
+   %{status: "started", timestamp: "2025-04-02T18:13:58.220533Z", region: "ord"}},
+  {"48eddeef744d58",
+   %{status: "created", timestamp: "2025-04-02T18:14:27.554385Z", region: "yyz"}}
+]
   """
-  def get_all_machines do
+  def look_up_all_machines do
     :ets.tab2list(@table_name)
     |> Enum.map(fn {id, data} -> Map.put(data, :id, id) end)
   end
@@ -55,7 +62,7 @@ defmodule WhereMachines.MachineTracker do
   Read the status of a specific machine from the ETS table.
   Not tested since not used yet.
   """
-  def get_machine(machine_id) do
+  def look_up_machine(machine_id) do
     case :ets.lookup(@table_name, machine_id) do
       [{^machine_id, data}] -> {:ok, data}
       [] -> {:error, :not_found}
@@ -67,7 +74,7 @@ defmodule WhereMachines.MachineTracker do
   """
   def region_stats do
     # Get active machines (with "started" status)
-    active_machines = get_all_machines()
+    active_machines = look_up_all_machines()
     |> Enum.filter(fn machine -> machine.status == "started" end)
 
     # Group by region
@@ -91,7 +98,6 @@ defmodule WhereMachines.MachineTracker do
     regions
     |> Enum.map(fn region ->
       try do
-        # region_atom = String.to_existing_atom(region)
         WhereMachines.CityData.city_to_svg(region, bbox)
       rescue
         _ -> Logger.info("MachineTracker.get_active_region_coords went wrong.")
@@ -101,42 +107,25 @@ defmodule WhereMachines.MachineTracker do
     |> Enum.reject(&is_nil/1)
   end
 
+  #######################################################################################
   # Server Callbacks
+  #######################################################################################
 
   @impl true
   def init(_) do
     # Create ETS table to store machine status
     :ets.new(@table_name, [:set, :named_table, :public, read_concurrency: true])
-    Phoenix.PubSub.subscribe(:where_pubsub, "um_table")
+    Phoenix.PubSub.subscribe(:where_pubsub, "machine_updates")
     # Initial population of table
-    call_api_and_update()
+    send(self(), :initial_population)
     # Schedule periodic cleanup
     # schedule_cleanup()
     {:ok, %{}}
   end
 
   @impl true
-  # Our Useless Machine says it's started up.
-  # Broadcast locally so the LiveView knows to forward the browser to it.
-  # Broadcast to cluster so all MachineTrackers can add it to their table.
-  def handle_cast({:update_from_http, machine_id,  %{status: "started"} = status_map}, state) do
-    Logger.info("MachineTracker handling :update_from_http message for a started Machine.")
-    broadcast_local_table_updated({:machine_ready, machine_id})
-    Phoenix.PubSub.broadcast(:where_pubsub, "um_table", {:machine_added, machine_id, status_map})
-    {:noreply, state}
-  end
-
-  # Our Machine says it's shutting down.
-  # Broadcast to cluster so all MachineTrackers can remove it from their table
-  def handle_cast({:update_from_http, machine_id, %{status: "stopping"}}, state) do
-    Logger.info("MachineTracker handling :update_from_http message for a stopping Machine")
-    # Broadcast the status update
-    Phoenix.PubSub.broadcast(:where_pubsub, "um_table", {:machine_stopped, machine_id})
-    {:noreply, state}
-  end
-
   def handle_cast({:update_all_from_api, api_machines}, state) do
-    api_entries = api_machines |> IO.inspect(label: "Machines from API:")
+    api_entries = api_machines # |> IO.inspect(label: "Machines from API:")
         |> Enum.map(fn machine ->
           {machine["id"],
           %{
@@ -149,7 +138,7 @@ defmodule WhereMachines.MachineTracker do
     # won't matter, but let's practice the skill
     api_ids = MapSet.new(api_entries, fn {first, _} -> first end)
 
-    current_ids = get_all_machines() |> Enum.map(fn m -> m.id end) |> MapSet.new()
+    current_ids = look_up_all_machines() |> Enum.map(fn m -> m.id end) |> MapSet.new()
 
     # Get IDs that are only in one set or the other
     # api_only = MapSet.difference(api_ids, current_ids) |> MapSet.to_list()
@@ -190,41 +179,25 @@ defmodule WhereMachines.MachineTracker do
     # Phoenix.PubSub.broadcast(:where_pubsub, "to:#{this_machine}", {:table_updated_from_api})
     broadcast_local_table_updated(:replaced_from_api)
     {:noreply, state}
-
   end
+
   #######################################################################################
-  # Handle PubSub messages on the "um_table" topic from the cluster (including this node)
+  # Handle messages sent by this module to itself
   #######################################################################################
 
-  # Insert a new Machine into the table and tell the local topic the table's updated
   @impl true
-  def handle_info({:machine_added, machine_id, status_map}, state) do
-    Logger.info("MachineTracker: PubSub :machine_added message received")
-    # Store in ETS
-    :ets.insert(@table_name, {machine_id, status_map})
-    broadcast_local_table_updated(:machine_added)
+  def handle_info(:initial_population, state) do
+    call_api_and_update()
     {:noreply, state}
   end
-
-  # Remove a finished Machine from the table and tell the local topic the table's updated
-  @impl true
-  def handle_info({:machine_stopped, machine_id}, state) do
-    Logger.info("MachineTracker: PubSub :machine_stopped message received")
-    # Remove from ETS
-    :ets.delete(@table_name, machine_id)
-    broadcast_local_table_updated(:machine_removed)
-    {:noreply, state}
-
-  end
-
-  # Handle a message sent from this module saying it's time to clear out stale Machines
+    # Handle a message sent from this module saying it's time to clear out stale Machines
   # from the table
   @impl true
   def handle_info(:clean_up_stale_machines, state) do
     now = DateTime.utc_now()
 
     # Find machines with stale statuses in ETS
-    all_machines = get_all_machines()
+    all_machines = look_up_all_machines()
 
     for machine <- all_machines do
       case DateTime.from_iso8601(machine.timestamp) do
@@ -239,19 +212,6 @@ defmodule WhereMachines.MachineTracker do
           # Invalid timestamp, remove this entry
           :ets.delete(@table_name, machine.id)
       end
-
-      # Remove machines that have been stopped for more than 1 minute
-      if machine.status == "stopping" do
-        case DateTime.from_iso8601(machine.timestamp) do
-          {:ok, timestamp, _} ->
-            if DateTime.diff(now, timestamp, :minute) > 1 do
-              Logger.info("Removing stopped machine: #{machine.id}")
-              :ets.delete(@table_name, machine.id)
-            end
-          _ ->
-            :ok
-        end
-      end
       # Broadcast that cleanup has happened
       broadcast_local_table_updated(:cleanup)
     end
@@ -262,6 +222,42 @@ defmodule WhereMachines.MachineTracker do
     {:noreply, state}
   end
 
+
+  #######################################################################################
+  # Handle PubSub messages on the "machine_updates" topic from the cluster (including this node)
+  #######################################################################################
+
+  @impl true
+  def handle_info({:machine_added, %{machine_id: machine_id, status_map: status_map}}, state) do
+    Logger.info("MachineTracker: PubSub :machine_added message received")
+    :ets.insert(@table_name, {machine_id, status_map})
+    {:noreply, state}
+  end
+
+  # When we hear a Machine is ready, update its state (insert if it's not already there)
+  @impl true
+  def handle_info({:machine_ready, %{machine_id: machine_id, status_map: status_map}}, state) do
+    Logger.info("MachineTracker: PubSub :machine_ready message received")
+    :ets.insert(@table_name, {machine_id, status_map})
+    {:noreply, state}
+  end
+
+  # Remove a finished Machine from the table
+  @impl true
+  def handle_info({:machine_stopping, machine_id}, state) do
+    Logger.info("MachineTracker: PubSub :machine_stopping message received")
+    :ets.delete(@table_name, machine_id)
+    {:noreply, state}
+  end
+
+
+  # Helper to map API machine state to our status format
+  defp map_api_status("started"), do: "started"
+  defp map_api_status("stopping"), do: "stopping"
+  defp map_api_status("stopped"), do: "stopping"
+  defp map_api_status(other), do: other
+
+
   defp schedule_cleanup do
     Process.send_after(self(), :clean_up_stale_machines, @cleanup_interval)
   end
@@ -271,10 +267,5 @@ defmodule WhereMachines.MachineTracker do
     Phoenix.PubSub.broadcast(:where_pubsub, "to:#{this_machine}", {:table_updated, message})
   end
 
-  # Helper to map API machine state to our status format
-  defp map_api_status("started"), do: "started"
-  defp map_api_status("stopping"), do: "stopping"
-  defp map_api_status("stopped"), do: "stopping"
-  defp map_api_status(other), do: other
 
 end

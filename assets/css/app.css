@@ -34,3 +34,14 @@ h2, h2 code.inline {
   outline-width: 2px; 
   outline-style: solid; */
 }
+
+.button-grid {
+  @apply bg-[#111111] rounded-xl p-4;
+  @apply border-2 border-neutral-600;
+  @apply font-mono text-zinc-400;
+  @apply grid grid-cols-4;
+}
+
+.dash-button {
+  @apply bg-slate-700 w-32 h-12 my-2 rounded-lg border border-[#DAA520];
+}

@@ -20,12 +20,21 @@ defmodule WhereMachinesWeb.APIController do
       timestamp = params["timestamp"] || DateTime.utc_now() |> DateTime.to_iso8601()
 
       # Store the status and broadcast to interested processes
-      WhereMachines.MachineTracker.update_from_http(machine_id, %{
+      status_map = %{
         status: status,
         region: region,
         timestamp: timestamp
-      })
+      }
+      Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_ready, %{machine_id: machine_id, status_map: status_map}})
+      conn
+      |> put_status(:ok)
+      |> json(%{success: true})
+  end
 
+  # TODO: edit this and useless machine API client so useless machine can specify that it's stopping.
+  def update(conn, %{"machine_id" => machine_id}) do
+    Logger.info("Received HTTP status update from Useless Machine for #{machine_id}. (Means it's stopping)")
+      Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_stopping, machine_id})
       conn
       |> put_status(:ok)
       |> json(%{success: true})

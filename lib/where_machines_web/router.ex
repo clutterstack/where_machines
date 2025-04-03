@@ -26,6 +26,7 @@ defmodule WhereMachinesWeb.Router do
     pipe_through :browser
     # get "/", PageController, :home
     live "/", IndexLive
+    # live "/machines", MachinesDash
     get "/machine/:mach_id", RedirectController, :redirect_to_machine
   end
 
@@ -37,6 +38,7 @@ defmodule WhereMachinesWeb.Router do
   end
 
   # Enable LiveDashboard in development
+  # And Machines Dashboard
   if Application.compile_env(:where_machines, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put
     # it behind authentication and allow only admins to access it.
@@ -49,6 +51,11 @@ defmodule WhereMachinesWeb.Router do
       pipe_through :browser
 
       live_dashboard "/dashboard", metrics: WhereMachinesWeb.Telemetry
+    end
+
+    scope "/", WhereMachinesWeb do
+      pipe_through :browser
+      live "/machines", MachinesDash
     end
   end
 
