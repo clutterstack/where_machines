@@ -25,7 +25,7 @@ defmodule WhereMachinesWeb.APIController do
         region: region,
         timestamp: timestamp
       }
-      Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_ready, %{machine_id: machine_id, status_map: status_map}})
+      Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_ready, {machine_id, status_map}})
       conn
       |> put_status(:ok)
       |> json(%{success: true})

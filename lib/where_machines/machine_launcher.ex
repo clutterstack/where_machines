@@ -8,6 +8,8 @@ defmodule WhereMachines.MachineLauncher do
   @app_name "useless-machine"
 
   def maybe_spawn_useless_machine(id, region \\ "") do
+    region = validate_region(region)
+
     # First check tracker (fast)
     {count, _regions, _} = MachineTracker.region_stats()
 
@@ -56,6 +58,16 @@ defmodule WhereMachines.MachineLauncher do
         {:error, "unanticipated response"}
     end
 
+  end
+
+  defp validate_region(region) do
+    region_atom = String.to_existing_atom(region)
+    if (Map.has_key?(WhereMachines.CityData.cities(), region_atom)) do
+      region
+    else
+      Logger.warning("#{region} is not a valid region. Falling back to platform default region.")
+      ""
+    end
   end
 
 end

@@ -1,31 +1,35 @@
-defmodule WhereMachinesWeb.IndexLive do
-  use WhereMachinesWeb, :live_view
-  alias Phoenix.LiveView.AsyncResult
-  import WhereMachinesWeb.RegionMap
+defmodule WhereMachinesWeb.MachineStatusLive do
+  use WhereMachinesWeb, :live_component
+  alias WhereMachines.CityData
   alias WhereMachines.MachineTracker
+  import WhereMachinesWeb.RegionMap
 
   require Logger
 
   @bbox {0, 0, 800, 391}
-  @regions [:local]
 
-  def mount(_params, %{"fly_region" => fly_edge_region}, socket) do
+  def mount(socket) do
     # Subscribe to machine status updates
     this_machine = System.get_env("FLY_MACHINE_ID")
+
     Logger.info("MachinesDash subscribing to :where_pubsub, to:#{this_machine} messages")
     Phoenix.PubSub.subscribe(:where_pubsub, "to:#{this_machine}")
+    Phoenix.PubSub.subscribe(:where_pubsub, "machine_updates")
 
     {count, active_regions, region_count} = MachineTracker.region_stats()
+
     {:ok, assign(socket,
-      regions: @regions,
-      fly_edge_region: fly_edge_region,
+      umachines: MachineTracker.look_up_all_machines(),
       count: count,
       active_regions: active_regions,
       region_count: region_count,
-      map_coords: MachineTracker.get_active_region_coords(@bbox),
-      umachines: MachineTracker.look_up_all_machines(),
-      page_title: "Where Machines",
-      create_result: AsyncResult.ok(:idle)
+      map_coords: MachineTracker.get_active_region_coords(@bbox)
+    )}
+  end
+
+  def update(assigns, socket) do
+    {:ok, assign(socket,
+      opts: assigns.opts
     )}
   end
 
@@ -37,16 +41,13 @@ defmodule WhereMachinesWeb.IndexLive do
     <div class="min-h-screen container grid grid-cols-4 content-start gap-8 items-center">
 
     <div class="col-span-2">Your Fly.io edge region is <%= @fly_edge_region %></div>
+
       <!-- Map -->
-      <div class="col-start-1 col-span-4 panel relative">
+      <div class="col-start-1 col-span-4 panel">
         <%= world_map_svg(%{coords: @map_coords}) %>
         <!-- Overlay text -->
         <div class="text-xs text-zinc-200">
           Active regions: <%= Enum.join(@active_regions, ", ") %>
-        </div>
-        <!-- Map credit -->
-        <div class="absolute bottom-2 right-4 text-[10px]">
-          Made with Natural Earth.
         </div>
       </div>
 
@@ -57,46 +58,7 @@ defmodule WhereMachinesWeb.IndexLive do
         <% end %>
       </div>
 
-
-
-      <!-- Create Machine Button -->
-      <div class="panel col-span-3">
-        <div>Push button to create your Useless Machine in the cloud</div>
-        <div class="text-2xl">START</div>
-
-          <!-- Machine Launcher Component with button -->
-          <.live_component
-            module={WhereMachinesWeb.MachineLauncher}
-            id="local-button"
-            regions={@regions}
-            classes="relative rounded-full border-2 border-zinc-700 w-20 h-20 flex justify-center items-center"
-            btn_class="absolute
-                    w-16 h-16 rounded-full
-                    border border-[#DAA520]
-                    text-transparent
-                    cursor-pointer z-10
-                    shadow-lg
-                    hover:shadow-xl
-                    active:scale-95
-                    transition-all
-                    duration-300"
-          ></.live_component>
-        </div>
-
-        <div class="panel col-start-2">
-
-        <%= if @create_result do %>
-          <.async_result :let={result} assign={@create_result}>
-            <:loading>Waiting for API response.</:loading>
-            <:failed :let={reason}>{reason}</:failed>
-            <div>This is result: {result}</div>
-            <!-- <div>{result.machine_id}</div> -->
-          </.async_result>
-        <% else %>
-          <div>Push button to create your useless Machine</div>
-      <% end %>
-      </div>
-
+      <!-- Machine table -->
       <div class="panel col-span-3">
         <h3 class="text-lg font-semibold text-yellow-300 mb-2">Active Machines</h3>
         <div class="w-full overflow-x-auto">
@@ -148,47 +110,71 @@ defmodule WhereMachinesWeb.IndexLive do
     end
   end
 
-  def handle_info(:our_machine_ready, socket) do
-    mach_id = socket.assigns.create_result.result.body["id"]
-    Logger.info("About to try redirecting to https://useless-machine.fly.dev/machine/#{mach_id}")
-    {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine/#{mach_id}")}
-    # {:noreply, redirect(socket, external: "/machine/#{mach_id}")}
 
+  #####################################################################
+  # Messages from PubSub
+  #####################################################################
+
+  def handle_info({:machine_added, {machine_id, status_map}}, socket) do
+    Logger.info("MachinesDash got a :machine_added message from PubSub for #{machine_id}.")
+    {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
   end
 
-  ########################
-  # Messages from PubSub #
-  ########################
-
-  # :machine_ready
-  # :replaced_from_api
-  # :machine_added
-  # :cleanup
-
+  def handle_info({:machine_ready, {machine_id, status_map}}, socket) do
+    Logger.info("MachinesDash got a :machine_ready message from PubSub for #{machine_id}.")
+    {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
+  end
 
   def handle_info({:machine_stopping, machine_id}, socket) do
-    Logger.info("IndexLive: :machine_stopping for #{machine_id}. Update assigns from the table.")
-    # Refresh machine data from MachineTracker for map and stats display
-    update_assigns_from_table(socket)
-    {:noreply, assign(socket,
-      map_coords: MachineTracker.get_active_region_coords(@bbox),
-      umachines: MachineTracker.look_up_all_machines(),
-      create_result: AsyncResult.ok(:idle)
-    )}
+    Logger.info("MachinesDash: :machine_stopping for #{machine_id}. Remove from machines assign.")
+    {:noreply, assign(socket, umachines: new_machines_assign(:remove, machine_id, socket))}
+  end
+
+  def handle_info({:machine_removed, machine_id}, socket) do
+    Logger.info("MachinesDash: :machine_removed for #{machine_id}. Remove from machines assign.")
+    {:noreply, assign(socket, umachines: new_machines_assign(:remove, machine_id, socket))}
   end
 
   def handle_info({:cleanup}, socket) do
-    Logger.info("IndexLive: :cleanup. Update assigns from the table.")
+    Logger.info("MachinesDash: :cleanup. Update assigns from the table.")
     # Refresh machine data from MachineTracker for map and stats display
     update_assigns_from_table(socket)
   end
 
+  def handle_info({:replaced_from_api,{machine_id, status_map}}, socket) do
+    Logger.info("MachinesDash: :replaced_from_api for #{machine_id}.")
+    {:noreply, assign(socket, umachines: new_machines_assign(:update,{machine_id, status_map}, socket))}
+    # update_assigns_from_table(socket)
+  end
+
   def handle_info(message, socket) do
-    Logger.info("IndexLive received unknown message: #{inspect message}")
+    Logger.debug("MachinesDash ignoring message: #{inspect message}")
     {:noreply, socket}
   end
 
+
+  ################################################
+  # Helpers to update machines assigns
+  ################################################
+
+  # Add or update a Machine
+  defp new_machines_assign(:update, {machine_id, status_map}, socket) do
+    socket.assigns.umachines |> dbg
+    Map.update(socket.assigns.umachines, machine_id, status_map, fn _existing_map -> status_map end)
+  end
+
+  # Remove a Machine if it's in the map.
+  defp new_machines_assign(:remove, machine_id, socket) do
+    # TODO? make machines a keyword list for O(1) lookups (only matters much for huge numbers of machines)
+    Map.delete(socket.assigns.umachines, machine_id) |> dbg
+  end
+
+  #####################################################################
+  # Replace everything with values from ETS
+  #####################################################################
+
   defp update_assigns_from_table(socket) do
+    # TODO: less redundant reading of the table
     {count, regions, region_count} = MachineTracker.region_stats()
     coords = MachineTracker.get_active_region_coords(@bbox)
     {:noreply, assign(socket,

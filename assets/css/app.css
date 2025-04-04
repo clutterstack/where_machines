@@ -43,5 +43,5 @@ h2, h2 code.inline {
 }
 
 .dash-button {
-  @apply bg-slate-700 w-32 h-12 my-2 rounded-lg border border-[#DAA520];
+  @apply w-32 h-12 my-2 rounded-lg border border-[#DAA520];
 }

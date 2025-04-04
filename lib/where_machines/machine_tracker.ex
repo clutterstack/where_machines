@@ -51,11 +51,11 @@ defmodule WhereMachines.MachineTracker do
    %{status: "started", timestamp: "2025-04-02T18:13:58.220533Z", region: "ord"}},
   {"48eddeef744d58",
    %{status: "created", timestamp: "2025-04-02T18:14:27.554385Z", region: "yyz"}}
-]
+  ]
   """
   def look_up_all_machines do
     :ets.tab2list(@table_name)
-    |> Enum.map(fn {id, data} -> Map.put(data, :id, id) end)
+    |> Map.new(fn {id, status_map} -> {id, status_map} end)
   end
 
   @doc """
@@ -75,11 +75,13 @@ defmodule WhereMachines.MachineTracker do
   def region_stats do
     # Get active machines (with "started" status)
     active_machines = look_up_all_machines()
-    |> Enum.filter(fn machine -> machine.status == "started" end)
+    |> Enum.filter(fn {_key, value} ->
+      value.status == "created"
+    end)
 
     # Group by region
     count_by_region = active_machines
-    |> Enum.group_by(fn machine -> machine.region end)
+    |> Enum.group_by(fn {_key, status_map} -> status_map.region end)
     |> Enum.map(fn {region, machines} -> {region, length(machines)} end)
     |> Enum.into(%{}) # list to map
 
@@ -116,6 +118,7 @@ defmodule WhereMachines.MachineTracker do
     # Create ETS table to store machine status
     :ets.new(@table_name, [:set, :named_table, :public, read_concurrency: true])
     Phoenix.PubSub.subscribe(:where_pubsub, "machine_updates")
+
     # Initial population of table
     send(self(), :initial_population)
     # Schedule periodic cleanup
@@ -125,7 +128,8 @@ defmodule WhereMachines.MachineTracker do
 
   @impl true
   def handle_cast({:update_all_from_api, api_machines}, state) do
-    api_entries = api_machines # |> IO.inspect(label: "Machines from API:")
+    this_machine = System.get_env("FLY_MACHINE_ID")
+    api_entries = api_machines |> IO.inspect(label: "Machines from API:")
         |> Enum.map(fn machine ->
           {machine["id"],
           %{
@@ -138,7 +142,7 @@ defmodule WhereMachines.MachineTracker do
     # won't matter, but let's practice the skill
     api_ids = MapSet.new(api_entries, fn {first, _} -> first end)
 
-    current_ids = look_up_all_machines() |> Enum.map(fn m -> m.id end) |> MapSet.new()
+    current_ids = look_up_all_machines() |> Enum.map(fn {id, _status_map} -> id end) |> MapSet.new()
 
     # Get IDs that are only in one set or the other
     # api_only = MapSet.difference(api_ids, current_ids) |> MapSet.to_list()
@@ -163,6 +167,7 @@ defmodule WhereMachines.MachineTracker do
     |> Enum.map(fn machine_id ->
       :ets.delete(@table_name, machine_id)
       Logger.info("Removed machine from tracker: #{machine_id}")
+      Phoenix.PubSub.broadcast(:where_pubsub, "to:#{this_machine}", {:machine_removed, machine_id})
     end)
 
     # Overwrite all entries with the API version (:etc.insert is an upsert
@@ -172,6 +177,8 @@ defmodule WhereMachines.MachineTracker do
     |> Enum.map(fn {machine_id, status_map} ->
       :ets.insert(@table_name, {machine_id, status_map})
       Logger.info("Added or overwrote Machine #{machine_id} with API result")
+      Phoenix.PubSub.broadcast(:where_pubsub, "to:#{this_machine}", {:replaced_from_api, {machine_id, status_map}})
+
     end)
 
     # Broadcast to our local node's topic that the table changed
@@ -228,7 +235,7 @@ defmodule WhereMachines.MachineTracker do
   #######################################################################################
 
   @impl true
-  def handle_info({:machine_added, %{machine_id: machine_id, status_map: status_map}}, state) do
+  def handle_info({:machine_added, {machine_id, status_map}}, state) do
     Logger.info("MachineTracker: PubSub :machine_added message received")
     :ets.insert(@table_name, {machine_id, status_map})
     {:noreply, state}
@@ -236,7 +243,7 @@ defmodule WhereMachines.MachineTracker do
 
   # When we hear a Machine is ready, update its state (insert if it's not already there)
   @impl true
-  def handle_info({:machine_ready, %{machine_id: machine_id, status_map: status_map}}, state) do
+  def handle_info({:machine_ready, {machine_id, status_map}}, state) do
     Logger.info("MachineTracker: PubSub :machine_ready message received")
     :ets.insert(@table_name, {machine_id, status_map})
     {:noreply, state}

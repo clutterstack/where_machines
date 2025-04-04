@@ -1,11 +1,8 @@
 defmodule WhereMachinesWeb.MachinesDash do
   use WhereMachinesWeb, :live_view
-  alias Phoenix.LiveView.AsyncResult
   alias WhereMachines.CityData
   alias WhereMachines.MachineTracker
   import WhereMachinesWeb.RegionMap
-  alias WhereMachines.MachineLauncher
-  alias WhereMachinesWeb.Components.RegionButton
 
   require Logger
 
@@ -14,17 +11,21 @@ defmodule WhereMachinesWeb.MachinesDash do
   def mount(_params, %{"fly_region" => fly_edge_region}, socket) do
     # Subscribe to machine status updates
     this_machine = System.get_env("FLY_MACHINE_ID")
+    regions = Map.keys(CityData.cities()) # a list of atoms
+
     Logger.info("MachinesDash subscribing to :where_pubsub, to:#{this_machine} messages")
     Phoenix.PubSub.subscribe(:where_pubsub, "to:#{this_machine}")
+    Phoenix.PubSub.subscribe(:where_pubsub, "machine_updates")
 
     {count, active_regions, region_count} = MachineTracker.region_stats()
     {:ok, assign(socket,
+      regions: regions,
       fly_edge_region: fly_edge_region,
       count: count,
       active_regions: active_regions,
       region_count: region_count,
       map_coords: MachineTracker.get_active_region_coords(@bbox),
-      machines: MachineTracker.look_up_all_machines(),
+      umachines: MachineTracker.look_up_all_machines(),
       page_title: "Where Machines"
     )}
   end
@@ -57,9 +58,9 @@ defmodule WhereMachinesWeb.MachinesDash do
 
       <!-- Machine Launcher Component with buttons -->
       <.live_component
-        module={WhereMachinesWeb.MachineLauncherComponent}
+        module={WhereMachinesWeb.MachineLauncher}
         id="machine-launcher"
-        active_regions={@active_regions}
+        regions={@regions}
         classes="col-span-4 button-grid"
         btn_class="dash-button"
       ></.live_component>
@@ -78,21 +79,21 @@ defmodule WhereMachinesWeb.MachinesDash do
               </tr>
             </thead>
             <tbody>
-              <%= for machine <- @machines do %>
+              <%= for {id, status_map} <- @umachines do %>
                 <tr class="hover:bg-zinc-700 transition-colors">
-                  <td class="py-2 px-4 border-b border-zinc-700"><%= machine.id %></td>
-                  <td class="py-2 px-4 border-b border-zinc-700"><%= machine.region %></td>
+                  <td class="py-2 px-4 border-b border-zinc-700"><%= id %></td>
+                  <td class="py-2 px-4 border-b border-zinc-700"><%= status_map.region %></td>
                   <td class="py-2 px-4 border-b border-zinc-700">
-                    <span class={status_class(machine.status)}>
-                      <%= machine.status %>
+                    <span class={status_class(status_map.status)}>
+                      <%= status_map.status %>
                     </span>
                   </td>
                   <td class="py-2 px-4 border-b border-zinc-700">
-                    <%= format_time(machine.timestamp) %>
+                    <%= format_time(status_map.timestamp) %>
                   </td>
                 </tr>
               <% end %>
-              <%= if Enum.empty?(@machines) do %>
+              <%= if Enum.empty?(@umachines) do %>
                 <tr>
                   <td colspan="5" class="py-4 text-center text-zinc-500">No active machines</td>
                 </tr>
@@ -121,19 +122,24 @@ defmodule WhereMachinesWeb.MachinesDash do
   # Messages from PubSub
   #####################################################################
 
-  def handle_info({:machine_added, %{machine_id: machine_id, status_map: status_map}}, socket) do
-    Logger.info("MachinesDash got a :machine_ready message from PubSub for #{machine_id}.")
-    {:noreply, assign(socket, machines: new_machines_assign(%{machine_id: machine_id, status_map: status_map}, socket))}
+  def handle_info({:machine_added, {machine_id, status_map}}, socket) do
+    Logger.info("MachinesDash got a :machine_added message from PubSub for #{machine_id}.")
+    {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
   end
 
-  def handle_info({:machine_ready, %{machine_id: machine_id, status_map: status_map}}, socket) do
+  def handle_info({:machine_ready, {machine_id, status_map}}, socket) do
     Logger.info("MachinesDash got a :machine_ready message from PubSub for #{machine_id}.")
-    {:noreply, assign(socket, machines: new_machines_assign(%{machine_id: machine_id, status_map: status_map}, socket))}
+    {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
   end
 
   def handle_info({:machine_stopping, machine_id}, socket) do
     Logger.info("MachinesDash: :machine_stopping for #{machine_id}. Remove from machines assign.")
-    {:noreply, assign(socket, machines: new_machines_assign(:remove_machine, machine_id, socket))}
+    {:noreply, assign(socket, umachines: new_machines_assign(:remove, machine_id, socket))}
+  end
+
+  def handle_info({:machine_removed, machine_id}, socket) do
+    Logger.info("MachinesDash: :machine_removed for #{machine_id}. Remove from machines assign.")
+    {:noreply, assign(socket, umachines: new_machines_assign(:remove, machine_id, socket))}
   end
 
   def handle_info({:cleanup}, socket) do
@@ -142,14 +148,14 @@ defmodule WhereMachinesWeb.MachinesDash do
     update_assigns_from_table(socket)
   end
 
-  def handle_info({:replaced_from_api}, socket) do
-    Logger.info("MachinesDash: :replaced_from_api. Update assigns from the table.")
-    # Refresh machine data from MachineTracker for map and stats display
-    update_assigns_from_table(socket)
+  def handle_info({:replaced_from_api,{machine_id, status_map}}, socket) do
+    Logger.info("MachinesDash: :replaced_from_api for #{machine_id}.")
+    {:noreply, assign(socket, umachines: new_machines_assign(:update,{machine_id, status_map}, socket))}
+    # update_assigns_from_table(socket)
   end
 
   def handle_info(message, socket) do
-    Logger.info("MachinesDash received unknown message: #{inspect message}")
+    Logger.debug("MachinesDash ignoring message: #{inspect message}")
     {:noreply, socket}
   end
 
@@ -159,16 +165,15 @@ defmodule WhereMachinesWeb.MachinesDash do
   ################################################
 
   # Add or update a Machine
-  defp new_machines_assign(%{machine_id: machine_id, status_map: status_map}, socket) do
-    updated_machines = Map.update(socket.assigns.machines, machine_id, %{machine_id: machine_id, status_map: status_map}, fn machine ->
-        %{machine | status_map: status_map} end)
-    updated_machines
+  defp new_machines_assign(:update, {machine_id, status_map}, socket) do
+    socket.assigns.umachines |> dbg
+    Map.update(socket.assigns.umachines, machine_id, status_map, fn _existing_map -> status_map end)
   end
 
   # Remove a Machine if it's in the map.
-  defp new_machines_assign(:remove_machine, machine_id, socket) do
-    updated_machines = Map.delete(socket.assigns.machines, machine_id)
-    updated_machines
+  defp new_machines_assign(:remove, machine_id, socket) do
+    # TODO? make machines a keyword list for O(1) lookups (only matters much for huge numbers of machines)
+    Map.delete(socket.assigns.umachines, machine_id) |> dbg
   end
 
   #####################################################################
@@ -180,7 +185,7 @@ defmodule WhereMachinesWeb.MachinesDash do
     {count, regions, region_count} = MachineTracker.region_stats()
     coords = MachineTracker.get_active_region_coords(@bbox)
     {:noreply, assign(socket,
-      machines: MachineTracker.look_up_all_machines(),
+      umachines: MachineTracker.look_up_all_machines(),
       active_regions: regions,
       machine_count: count,
       region_count: region_count,
