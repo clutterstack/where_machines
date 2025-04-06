@@ -45,3 +45,7 @@ h2, h2 code.inline {
 .dash-button {
   @apply w-32 h-12 my-2 rounded-lg border border-[#DAA520];
 }
+
+.status-lv {
+  @apply col-span-4 grid grid-cols-4;
+}

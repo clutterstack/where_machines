@@ -1,31 +1,17 @@
 defmodule WhereMachinesWeb.IndexLive do
   use WhereMachinesWeb, :live_view
-  alias Phoenix.LiveView.AsyncResult
-  import WhereMachinesWeb.RegionMap
-  alias WhereMachines.MachineTracker
 
   require Logger
 
-  @bbox {0, 0, 800, 391}
-  @regions [:local]
-
   def mount(_params, %{"fly_region" => fly_edge_region}, socket) do
     # Subscribe to machine status updates
-    this_machine = System.get_env("FLY_MACHINE_ID")
-    Logger.info("MachinesDash subscribing to :where_pubsub, to:#{this_machine} messages")
-    Phoenix.PubSub.subscribe(:where_pubsub, "to:#{this_machine}")
+    # Phoenix.PubSub.subscribe(:where_pubsub, "to:#{System.get_env("FLY_MACHINE_ID")}")
+    Phoenix.PubSub.subscribe(:where_pubsub, "machine_updates")
 
-    {count, active_regions, region_count} = MachineTracker.region_stats()
     {:ok, assign(socket,
-      regions: @regions,
       fly_edge_region: fly_edge_region,
-      count: count,
-      active_regions: active_regions,
-      region_count: region_count,
-      map_coords: MachineTracker.get_active_region_coords(@bbox),
-      umachines: MachineTracker.look_up_all_machines(),
-      page_title: "Where Machines",
-      create_result: AsyncResult.ok(:idle)
+      our_mach: nil,
+      page_title: "Where Machines"
     )}
   end
 
@@ -36,28 +22,19 @@ defmodule WhereMachinesWeb.IndexLive do
     ~H"""
     <div class="min-h-screen container grid grid-cols-4 content-start gap-8 items-center">
 
-    <div class="col-span-2">Your Fly.io edge region is <%= @fly_edge_region %></div>
-      <!-- Map -->
-      <div class="col-start-1 col-span-4 panel relative">
-        <%= world_map_svg(%{coords: @map_coords}) %>
-        <!-- Overlay text -->
-        <div class="text-xs text-zinc-200">
-          Active regions: <%= Enum.join(@active_regions, ", ") %>
-        </div>
-        <!-- Map credit -->
-        <div class="absolute bottom-2 right-4 text-[10px]">
-          Made with Natural Earth.
-        </div>
-      </div>
+      <div class="col-span-2">Your Fly.io edge region is <%= @fly_edge_region %></div>
 
-      <div class="col-span-1 panel">
-        <h3 class="text-lg font-semibold text-yellow-300 mb-2">Active Regions</h3>
-        <%= for region <- @active_regions do %>
-          <p><%= region %></p>
-        <% end %>
-      </div>
-
-
+      <!-- MachineStatusLive child LV to watch machines -->
+      <%= live_render(@socket,
+        WhereMachinesWeb.MachineStatusLive,
+        id: "machine-status-live",
+        session: %{
+          "classes" => "col-span-4 grid grid-cols-4",
+          "opts" => {[]}
+          },
+          container: {:div, class: "col-span-4"}
+        )
+      %>
 
       <!-- Create Machine Button -->
       <div class="panel col-span-3">
@@ -68,7 +45,7 @@ defmodule WhereMachinesWeb.IndexLive do
           <.live_component
             module={WhereMachinesWeb.MachineLauncher}
             id="local-button"
-            regions={@regions}
+            regions={[:local]}
             classes="relative rounded-full border-2 border-zinc-700 w-20 h-20 flex justify-center items-center"
             btn_class="absolute
                     w-16 h-16 rounded-full
@@ -82,122 +59,41 @@ defmodule WhereMachinesWeb.IndexLive do
                     duration-300"
           ></.live_component>
         </div>
-
-        <div class="panel col-start-2">
-
-        <%= if @create_result do %>
-          <.async_result :let={result} assign={@create_result}>
-            <:loading>Waiting for API response.</:loading>
-            <:failed :let={reason}>{reason}</:failed>
-            <div>This is result: {result}</div>
-            <!-- <div>{result.machine_id}</div> -->
-          </.async_result>
-        <% else %>
-          <div>Push button to create your useless Machine</div>
-      <% end %>
-      </div>
-
-      <div class="panel col-span-3">
-        <h3 class="text-lg font-semibold text-yellow-300 mb-2">Active Machines</h3>
-        <div class="w-full overflow-x-auto">
-          <table class="min-w-full bg-zinc-800 rounded-lg">
-            <thead>
-              <tr>
-                <th class="py-2 px-4 border-b border-zinc-700 text-left">ID</th>
-                <th class="py-2 px-4 border-b border-zinc-700 text-left">Region</th>
-                <th class="py-2 px-4 border-b border-zinc-700 text-left">Status</th>
-                <th class="py-2 px-4 border-b border-zinc-700 text-left">Last Update</th>
-              </tr>
-            </thead>
-            <tbody>
-              <%= for {id, status_map} <- @umachines do %>
-                <tr class="hover:bg-zinc-700 transition-colors">
-                  <td class="py-2 px-4 border-b border-zinc-700"><%= id %></td>
-                  <td class="py-2 px-4 border-b border-zinc-700"><%= status_map.region %></td>
-                  <td class="py-2 px-4 border-b border-zinc-700">
-                    <span class={status_class(status_map.status)}>
-                      <%= status_map.status %>
-                    </span>
-                  </td>
-                  <td class="py-2 px-4 border-b border-zinc-700">
-                    <%= format_time(status_map.timestamp) %>
-                  </td>
-                </tr>
-              <% end %>
-              <%= if Enum.empty?(@umachines) do %>
-                <tr>
-                  <td colspan="5" class="py-4 text-center text-zinc-500">No active machines</td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
     """
   end
 
-  defp status_class("started"), do: "px-2 py-1 rounded bg-green-800 text-green-200"
-  defp status_class("stopping"), do: "px-2 py-1 rounded bg-red-800 text-red-200"
-  defp status_class(_), do: "px-2 py-1 rounded bg-zinc-600 text-zinc-300"
+  #####################################################################
+  # Handle machine ready message from API controller via PubSub.
+  #####################################################################
 
-  defp format_time(timestamp) do
-    case DateTime.from_iso8601(timestamp) do
-      {:ok, dt, _} -> Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S")
-      _ -> timestamp
+  def handle_info({:machine_ready, {machine_id, _status_map}}, socket) do
+    Logger.info("IndexLive got :machine_ready from status controller via local PubSub.")
+    # If that's our Machine started, redirect the client to the useless machine app
+    our_mach = socket.assigns.our_mach
+    # TODO: Check buttons assigns for machine id instead (which means storing machine id)
+    Logger.info("our_mach: #{our_mach}; machine: #{machine_id}")
+
+    if machine_id == our_mach do
+      Process.send_after(self(), {:redirect_to_machine, our_mach}, 100)
     end
-  end
-
-  def handle_info(:our_machine_ready, socket) do
-    mach_id = socket.assigns.create_result.result.body["id"]
-    Logger.info("About to try redirecting to https://useless-machine.fly.dev/machine/#{mach_id}")
-    {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine/#{mach_id}")}
-    # {:noreply, redirect(socket, external: "/machine/#{mach_id}")}
-
-  end
-
-  ########################
-  # Messages from PubSub #
-  ########################
-
-  # :machine_ready
-  # :replaced_from_api
-  # :machine_added
-  # :cleanup
-
-
-  def handle_info({:machine_stopping, machine_id}, socket) do
-    Logger.info("IndexLive: :machine_stopping for #{machine_id}. Update assigns from the table.")
-    # Refresh machine data from MachineTracker for map and stats display
-    update_assigns_from_table(socket)
-    {:noreply, assign(socket,
-      map_coords: MachineTracker.get_active_region_coords(@bbox),
-      umachines: MachineTracker.look_up_all_machines(),
-      create_result: AsyncResult.ok(:idle)
-    )}
-  end
-
-  def handle_info({:cleanup}, socket) do
-    Logger.info("IndexLive: :cleanup. Update assigns from the table.")
-    # Refresh machine data from MachineTracker for map and stats display
-    update_assigns_from_table(socket)
-  end
-
-  def handle_info(message, socket) do
-    Logger.info("IndexLive received unknown message: #{inspect message}")
     {:noreply, socket}
   end
 
-  defp update_assigns_from_table(socket) do
-    {count, regions, region_count} = MachineTracker.region_stats()
-    coords = MachineTracker.get_active_region_coords(@bbox)
-    {:noreply, assign(socket,
-      umachines: MachineTracker.look_up_all_machines(),
-      active_regions: regions,
-      machine_count: count,
-      region_count: region_count,
-      map_coords: coords
-    )}
+  def handle_info({:redirect_to_machine, mach_id}, socket) do
+    Logger.info("About to try redirecting to https://useless-machine.fly.dev/machine/#{mach_id}")
+    {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine/#{mach_id}")}
+    # {:noreply, redirect(socket, external: "/machine/#{mach_id}")}
+  end
+
+  def handle_info({:our_mach_created, {_button_id, machine_id}}, socket) do
+    {:noreply, assign(socket,:our_mach, machine_id)}
+  end
+
+
+  def handle_info(message, socket) do
+    Logger.debug("IndexLive ignoring message: #{inspect message}")
+    {:noreply, socket}
   end
 
 end

@@ -1,7 +1,6 @@
 defmodule WhereMachines.CityData do
 
-  def cities() do
-    %{
+  @cities %{
     ams: {5,52},
     iad: {-77,39},
     atl: {-84,34},
@@ -38,11 +37,14 @@ defmodule WhereMachines.CityData do
     yyz: {-80,44},
     waw: {21,52}
     }
-  end
+
+def cities do
+  @cities
+end
 
 def city_to_svg(city, bbox) do
   city_atom = String.to_existing_atom(city)
-  {long, lat} = cities()[city_atom] # |> IO.inspect(label: "{long, lat} for #{city}")
+  {long, lat} = @cities[city_atom] # |> IO.inspect(label: "{long, lat} for #{city}")
   # latlong_to_svg({long, lat}, bbox)
   point = wgs84_to_svg({long, lat}, bbox) #|> IO.inspect(label: "transformed to point")
   point

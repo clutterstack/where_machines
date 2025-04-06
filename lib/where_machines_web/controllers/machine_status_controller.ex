@@ -8,13 +8,12 @@ defmodule WhereMachinesWeb.APIController do
   Expected payload format:
   {
     "machine_id": "12345",
-    "status": "started" | "stopping",
+    "status": "listening" | "stopping",
     "region": "yyz",
     "timestamp": "2025-03-28T12:34:56Z"
   }
   """
   def update(conn, %{"machine_id" => machine_id, "status" => status, "region" => region} = params) do
-    Logger.info("params: #{inspect params}")
     Logger.info("Received HTTP status update from Useless Machine for #{machine_id}: #{status}")
 
       timestamp = params["timestamp"] || DateTime.utc_now() |> DateTime.to_iso8601()
@@ -25,13 +24,12 @@ defmodule WhereMachinesWeb.APIController do
         region: region,
         timestamp: timestamp
       }
-      Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_ready, {machine_id, status_map}})
+      Phoenix.PubSub.local_broadcast(:where_pubsub, "machine_updates", {:machine_ready, {machine_id, status_map}})
       conn
       |> put_status(:ok)
       |> json(%{success: true})
   end
 
-  # TODO: edit this and useless machine API client so useless machine can specify that it's stopping.
   def update(conn, %{"machine_id" => machine_id}) do
     Logger.info("Received HTTP status update from Useless Machine for #{machine_id}. (Means it's stopping)")
       Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_stopping, machine_id})
