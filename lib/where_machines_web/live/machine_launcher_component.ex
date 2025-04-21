@@ -4,6 +4,9 @@ defmodule WhereMachinesWeb.MachineLauncher do
   alias WhereMachines.MachineLauncher
   require Logger
 
+  @reset_after_success 20000
+  @reset_after_failure 5000
+
   def mount(socket) do
     {:ok, socket}
   end
@@ -92,7 +95,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
     {:noreply,
       socket
       |> assign(buttons: updated_buttons)
-      |> start_async({:reset_button_task, button_id}, fn -> maybe_reset_button(button_id, 5000) end)
+      |> start_async({:reset_button_task, button_id}, fn -> maybe_reset_button(button_id, @reset_after_success) end)
     }
   end
 
@@ -102,7 +105,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
     {:noreply,
       socket
       |> assign(buttons: updated_buttons)
-      |> start_async(:reset_button_task, fn -> maybe_reset_button(button_id, 5000) end)
+      |> start_async(:reset_button_task, fn -> maybe_reset_button(button_id, @reset_after_failure) end)
     }
   end
 
@@ -113,7 +116,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
     {:noreply,
       socket
       |> assign(buttons: updated_buttons)
-      |> start_async(:reset_button_task, fn -> maybe_reset_button(button_id, 5000) end)
+      |> start_async(:reset_button_task, fn -> maybe_reset_button(button_id, @reset_after_failure) end)
     }
   end
 
@@ -123,19 +126,25 @@ defmodule WhereMachinesWeb.MachineLauncher do
     {:noreply,
       socket
       |> assign(buttons: updated_buttons)
-      |> start_async(:reset_button_task, fn -> maybe_reset_button(button_id, 5000) end)
+      |> start_async(:reset_button_task, fn -> maybe_reset_button(button_id, @reset_after_failure) end)
+     }
+  end
+
+  def handle_async({:create_machine_task, button_id}, {:exit, {:timeout, stuff}}, socket) do
+    Logger.error("❌ Machine creation task crashed with a timeout: #{inspect stuff}")
+    {:noreply,
+      socket
+      |> start_async(:reset_button_task, fn -> maybe_reset_button(button_id, @reset_after_failure) end)
     }
   end
 
-  def handle_async({:create_machine_task, _button_id}, {:exit, {:timeout, stuff}}, socket) do
-    Logger.error("❌ Machine creation task crashed with a timeout: #{inspect stuff}")
-    {:noreply, socket}
-  end
 
-
-  def handle_async({:create_machine_task, _button_id}, {:exit, %{message: message}}, socket) do
+  def handle_async({:create_machine_task, button_id}, {:exit, %{message: message}}, socket) do
     Logger.error("❌ Machine creation task crashed with message: #{message}")
-    {:noreply, socket}
+    {:noreply,
+      socket
+      |> start_async(:reset_button_task, fn -> maybe_reset_button(button_id, @reset_after_failure) end)
+    }
   end
 
   # Button resetter

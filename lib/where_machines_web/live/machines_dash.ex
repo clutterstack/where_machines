@@ -29,6 +29,8 @@ defmodule WhereMachinesWeb.MachinesDash do
         MachineStatusLive,
         id: "machine-status-live",
         session: %{
+          "launcher" => "all_regions",
+          "regions" => {assigns.regions},
           "classes" => "col-span-4 grid grid-cols-4",
           "opts" => {[]}
           },
@@ -36,20 +38,13 @@ defmodule WhereMachinesWeb.MachinesDash do
         )
       %>
 
-      <!-- Machine Launcher Component with buttons -->
-      <.live_component
-        module={MachineLauncher}
-        id="machine-launcher"
-        regions={@regions}
-        classes="col-span-4 button-grid"
-        btn_class="dash-button"
-      ></.live_component>
 
     </div>
     """
   end
 
   def handle_info({:our_mach_created, {button_id, machine_id}}, socket) do
+    Logger.info("MachinesDash received :our_mach_created message")
     {:noreply, assign(socket, our_machines: Map.put(socket.assigns.our_machines, button_id, machine_id))}
   end
 

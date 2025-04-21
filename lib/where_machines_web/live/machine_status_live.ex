@@ -9,16 +9,24 @@ defmodule WhereMachinesWeb.MachineStatusLive do
   @bbox {0, 0, 800, 391}
 
   def mount(_params, session, socket) do
-    # Subscribe to machine status updates
-    Phoenix.PubSub.subscribe(:where_pubsub, "machine_updates")
 
+    # Serialization details mean lists in the session parameters get wrapped in a tuple
+    {opts} = session["opts"]
+    {regions} = session["regions"]
+
+    if connected?(socket) do
+      # Subscribe to machine status updates
+      Phoenix.PubSub.subscribe(:where_pubsub, "machine_updates")
+    end
     # Populate Machines list from the ETS table
     initial_machines = MachineTracker.look_up_all_machines()
 
     {:ok, assign(socket,
       classes: session["classes"],
-      opts: session["opts"],
-      umachines: initial_machines
+      opts: opts,
+      umachines: initial_machines,
+      launcher: session["launcher"],
+      regions: regions
     )}
   end
 
@@ -36,6 +44,8 @@ defmodule WhereMachinesWeb.MachineStatusLive do
         Active regions: <%= Enum.join(active_regions(@umachines), " ") %>
       </div>
     </div>
+
+    <WhereMachinesWeb.Launchers.launcher variant={@launcher} regions={@regions} />
 
     <div class="col-span-1 panel">
       <h3 class="text-lg font-semibold text-yellow-300 mb-2">Active Regions</h3>

@@ -46,7 +46,7 @@ defmodule WhereMachines.MachineParams do
             }
           }
         ],
-        image: "registry.fly.io/useless-machine:deployment-01JR4M3P1VJ28XDMYQV535QJ87",
+        image: "registry.fly.io/useless-machine:deployment-01JS8DGCQ16RNZ2MQ7J1V38XKK",
         auto_destroy: true,
         restart: %{
           policy: "on-failure",

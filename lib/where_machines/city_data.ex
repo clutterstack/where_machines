@@ -11,7 +11,7 @@ defmodule WhereMachines.CityData do
     dfw: {-97,33},
     den: {-105,40},
     eze: {-59,-35},
-    zrb: {9,50},
+    fra: {9,50},
     gdl: {-103,21},
     hkg: {114,22},
     jnb: {28,-26},

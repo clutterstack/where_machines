@@ -39,7 +39,7 @@ defmodule WhereMachines.MachineLauncher do
         }
         {:ok, %{requestor_id: id, machine_id: machine_id, status_map: status_map}}
 
-      {:error, stuff} -> Logger.error("Button #{id} got an error from the API: #{stuff}")
+      {:error, stuff} -> Logger.error("Button #{id} got an error from the API: #{inspect stuff}")
         {:error, %{requestor_id: id, stuff: stuff}}
 
 

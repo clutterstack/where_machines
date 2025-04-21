@@ -29,36 +29,14 @@ defmodule WhereMachinesWeb.IndexLive do
         WhereMachinesWeb.MachineStatusLive,
         id: "machine-status-live",
         session: %{
+          "launcher" => "single",
+          "regions" => {[:local]},
           "classes" => "col-span-4 grid grid-cols-4",
           "opts" => {[]}
           },
-          container: {:div, class: "col-span-4"}
+        container: {:div, class: "col-span-4"}
         )
       %>
-
-      <!-- Create Machine Button -->
-      <div class="panel col-span-3">
-        <div>Push button to create your Useless Machine in the cloud</div>
-        <div class="text-2xl">START</div>
-
-          <!-- Machine Launcher Component with button -->
-          <.live_component
-            module={WhereMachinesWeb.MachineLauncher}
-            id="local-button"
-            regions={[:local]}
-            classes="relative rounded-full border-2 border-zinc-700 w-20 h-20 flex justify-center items-center"
-            btn_class="absolute
-                    w-16 h-16 rounded-full
-                    border border-[#DAA520]
-                    text-transparent
-                    cursor-pointer z-10
-                    shadow-lg
-                    hover:shadow-xl
-                    active:scale-95
-                    transition-all
-                    duration-300"
-          ></.live_component>
-        </div>
     </div>
     """
   end
@@ -87,9 +65,9 @@ defmodule WhereMachinesWeb.IndexLive do
   end
 
   def handle_info({:our_mach_created, {_button_id, machine_id}}, socket) do
-    {:noreply, assign(socket,:our_mach, machine_id)}
+    Logger.info("IndexLive received :our_mach_created message")
+    {:noreply, assign(socket, :our_mach, machine_id)}
   end
-
 
   def handle_info(message, socket) do
     Logger.debug("IndexLive ignoring message: #{inspect message}")

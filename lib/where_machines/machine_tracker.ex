@@ -4,8 +4,8 @@ defmodule WhereMachines.MachineTracker do
 
   @app_name "useless-machine"
   @table_name :useless_machines
-  @api_check_interval :timer.seconds(30)
-  @debounce_interval :timer.seconds(2) # Debounce calls to
+  @api_check_interval :timer.seconds(60)
+  @debounce_interval :timer.seconds(2)
   @min_refresh_interval :timer.seconds(5)  # Minimum time between API refreshes
   # Client API
 

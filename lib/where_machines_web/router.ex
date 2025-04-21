@@ -25,7 +25,8 @@ defmodule WhereMachinesWeb.Router do
   scope "/", WhereMachinesWeb do
     pipe_through :browser
     # get "/", PageController, :home
-    live "/", IndexLive
+    # live "/", IndexLive
+    live "/", ChopAndChange, :single
     # live "/machines", MachinesDash
     get "/machine/:mach_id", RedirectController, :redirect_to_machine
   end
@@ -56,6 +57,8 @@ defmodule WhereMachinesWeb.Router do
     scope "/", WhereMachinesWeb do
       pipe_through :browser
       live "/machines", MachinesDash
+      live "/dash", ChopAndChange, :all_regions
+
     end
   end
 
