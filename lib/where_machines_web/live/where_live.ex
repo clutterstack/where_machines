@@ -1,9 +1,8 @@
 defmodule WhereMachinesWeb.WhereLive do
   use WhereMachinesWeb, :live_view
 
-  alias WhereMachines.CityData
-  alias WhereMachines.MachineTracker
-  import WhereMachinesWeb.RegionMap
+  alias WhereMachines.{CityData, MachineTracker}
+  alias WhereMachinesWeb.{RegionMap, DashComponents, Launchers}
 
   @bbox {0, 0, 800, 391}
 
@@ -42,73 +41,23 @@ defmodule WhereMachinesWeb.WhereLive do
           <div class={@classes}>
           <!-- Map -->
           <div class="col-start-1 col-span-4 panel">
-            <%= world_map_svg(%{coords: get_active_region_coords(active_regions(@umachines))}) %>
+            <%= RegionMap.world_map_svg(%{coords: get_active_region_coords(active_regions(@umachines))}) %>
             <!-- Overlay text -->
             <div class="text-xs text-zinc-200">
               Active regions: <%= Enum.join(active_regions(@umachines), " ") %>
             </div>
           </div>
 
-          <WhereMachinesWeb.Launchers.launcher variant={@live_action} regions={@regions} />
+          <Launchers.launcher variant={@live_action} regions={@regions} />
+
+          <DashComponents.machine_table live_action={@live_action} machines={@umachines} />
 
           <div :if={@live_action == :all_regions} class="col-span-1 panel">
-            <h3 class="text-lg font-semibold text-yellow-300 mb-2">Active Regions</h3>
-            <%= for {region, count} <- region_stats(@umachines) do %>
-              <p>{region}: {count}</p>
-            <% end %>
-          </div>
-
-          <!-- Machine table -->
-          <div class="panel col-span-3">
-            <h3 class="text-lg font-semibold text-yellow-300 mb-2">Useless Machines (Total {Enum.count(@umachines)})</h3>
-            <div class="w-full overflow-x-auto text-sm">
-              <table class="min-w-full">
-                <thead>
-                  <tr>
-                    <th :if={@live_action == :all_regions} class="py-2 px-4 border-b border-zinc-700 text-left">ID</th>
-                    <th class="py-2 px-4 border-b border-zinc-700 text-left">Region</th>
-                    <th class="py-2 px-4 border-b border-zinc-700 text-left">Status</th>
-                    <th class="py-2 px-4 border-b border-zinc-700 text-left">Last Update</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <%= for {id, status_map} <- @umachines do %>
-                    <tr class="hover:bg-zinc-700 transition-colors">
-                      <td :if={@live_action == :all_regions} class="py-2 px-4 border-b border-zinc-700"><%= id %></td>
-                      <td class="py-2 px-4 border-b border-zinc-700"><%= status_map.region %></td>
-                      <td class="py-2 px-4 border-b border-zinc-700">
-                        <span class={status_class(status_map.status)}>
-                          <%= status_map.status %>
-                        </span>
-                      </td>
-                      <td class="py-2 px-4 border-b border-zinc-700">
-                        <%= format_time(status_map.timestamp) %>
-                      </td>
-                    </tr>
-                  <% end %>
-                  <%= if Enum.empty?(@umachines) do %>
-                    <tr>
-                      <td colspan="5" class="py-4 text-center text-zinc-500">No Machines</td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
+            <DashComponents.region_summaries machines={@umachines} />
           </div>
         </div>
     </div>
     """
-  end
-
-  defp status_class("started"), do: "px-2 py-1 rounded bg-green-800 text-green-200"
-  defp status_class("stopping"), do: "px-2 py-1 rounded bg-red-800 text-red-200"
-  defp status_class(_), do: "px-2 py-1 rounded bg-zinc-600 text-zinc-300"
-
-  defp format_time(timestamp) do
-    case DateTime.from_iso8601(timestamp) do
-      {:ok, dt, _} -> Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S")
-      _ -> timestamp
-    end
   end
 
   #####################################################################
@@ -209,16 +158,7 @@ defmodule WhereMachinesWeb.WhereLive do
     |> Enum.map(fn region -> CityData.city_to_svg(region, @bbox) end)
   end
 
-  @doc """
-  Number of Machines by region
-  %{"ams" => 1}
-  """
-  def region_stats(machines) do
-    machines
-    |> Enum.reduce(%{}, fn {_key, %{region: region}}, acc ->
-      Map.update(acc, region, 1, &(&1 + 1))
-    end)
-  end
+
 
   def active_regions(machines) do
     for {_key, %{region: region}} <- machines, uniq: true, do: region
