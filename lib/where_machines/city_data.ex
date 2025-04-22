@@ -38,65 +38,8 @@ defmodule WhereMachines.CityData do
     waw: {21,52}
     }
 
-def cities do
-  @cities
-end
-
-def city_to_svg(city, bbox) do
-  city_atom = String.to_existing_atom(city)
-  {long, lat} = @cities[city_atom] # |> IO.inspect(label: "{long, lat} for #{city}")
-  # latlong_to_svg({long, lat}, bbox)
-  point = wgs84_to_svg({long, lat}, bbox) #|> IO.inspect(label: "transformed to point")
-  point
-end
-
-
-@doc """
-  Transforms WGS84 (EPSG:4326) lat/long coordinates to SVG x/y positions.
-
-  Parameters:
-  - lat: Latitude in degrees
-  - long: Longitude in degrees
-  - svg_width: Width of the SVG in pixels
-  - svg_height: Height of the SVG in pixels
-  - bounds: Map with geographic bounds in format:
-            %{min_long: value, max_long: value, min_lat: value, max_lat: value}
-
-  Returns {x, y} coordinates in the SVG space
-  """
-  def wgs84_to_svg({long, lat}, {x_min, y_min, x_max, y_max}) do
-    svg_width = x_max - x_min
-    svg_height = y_max - y_min
-
-    bounds=%{min_long: -180, max_long: 180, min_lat: -90, max_lat: 90}
-
-    # Calculate percentage position along each axis
-    x_percent = (long - bounds.min_long) / (bounds.max_long - bounds.min_long)
-
-    # Note the inversion for y-axis since SVG's y increases downward
-    # while latitude increases upward
-    y_percent = 1 - (lat - bounds.min_lat) / (bounds.max_lat - bounds.min_lat)
-
-    # Convert to pixel positions
-    x = x_percent * svg_width
-    y = y_percent * svg_height
-
-    {x, y}
+  def cities do
+    @cities
   end
 
-  # def latlong_to_svg({long, lat}, {x_min, y_min, x_max, y_max}) do
-  #   svg_width = x_max - x_min
-  #   svg_height = y_max - y_min
-
-  #    # Standard Mercator projection
-  #    x = (long + 180) * (svg_width / 360)
-
-  #    # Convert latitude to y coordinate using Mercator formula
-  #    lat_rad = lat * :math.pi() / 180
-  #    merc_n = :math.log(:math.tan((:math.pi() / 4) + (lat_rad / 2)))
-  #    y = svg_height / 2 - (svg_width * merc_n / (2 * :math.pi()))
-
-  #    {x, y}
-
-  #   end
 end

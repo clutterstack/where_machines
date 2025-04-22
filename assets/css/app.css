@@ -25,11 +25,11 @@ h2, h2 code.inline {
 
 .panel {
   @apply bg-[#111111] rounded-xl p-4;
-  @apply border-2 border-neutral-600;
+  @apply border-2 border-zinc-600;
   /* @apply outline-2 outline-offset-6 outlne-amber-200; */
   /* @apply w-full h-full; */
   @apply flex flex-col justify-between items-center;
-  @apply font-mono text-zinc-400;
+  @apply font-mono;
   /* outline-color: #404040; 
   outline-offset: -12px; 
   outline-width: 2px; 
@@ -38,9 +38,9 @@ h2, h2 code.inline {
 
 .button-grid {
   @apply bg-[#111111] rounded-xl p-4;
-  @apply border-2 border-neutral-600;
-  @apply font-mono text-zinc-400;
-  @apply grid grid-cols-4;
+  @apply border-2 border-zinc-600;
+  @apply font-mono;
+  @apply grid grid-cols-subgrid justify-items-start;
 }
 
 .dash-button {

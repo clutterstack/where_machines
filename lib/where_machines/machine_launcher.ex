@@ -28,9 +28,9 @@ defmodule WhereMachines.MachineLauncher do
 
   end
 
-  defp spawn_machine(id, region) do
+  defp spawn_machine(id, requested_region) do
     client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("FLY_API_TOKEN"))
-    case Clutterfly.FlyAPI.create_machine(client, @app_name, Enum.into(%{region: region}, useless_params())) do
+    case Clutterfly.FlyAPI.create_machine(client, @app_name, Enum.into(%{region: requested_region}, useless_params())) do
       {:ok, %{status: 200, body: %{"id" => machine_id, "region" => region, "state" => state}}} ->
         status_map = %{
           status: state,
@@ -42,8 +42,24 @@ defmodule WhereMachines.MachineLauncher do
       {:error, stuff} -> Logger.error("Button #{id} got an error from the API: #{inspect stuff}")
         {:error, %{requestor_id: id, stuff: stuff}}
 
-
       other -> Logger.warning("create_machine returned unanticipated response #{inspect other}")
+        {:error, "unanticipated response"}
+    end
+  end
+
+  # {:ok, %Req.Response{status: 200, headers: %{"content-type" => ["application/json; charset=utf-8"], "date" => ["Tue, 22 Apr 2025 04:43:11 GMT"], "fly-request-id" => ["01JSDWX4XJWBVWKTPVV5KBQSEC-yyz"], "fly-span-id" => ["9b3f701a6c0f955e"], "fly-trace-id" => ["73dd28b095d55024c09633a2098c19a9"], "server" => ["Fly/9c00af92e (2025-04-17)"], "transfer-encoding" => ["chunked"], "via" => ["1.1 fly.io"], "x-envoy-upstream-service-time" => ["4861"]}, body: %{"ok" => true}, trailers: %{}, private: %{}}}
+  def wait_for_machine_to_start(id) do
+    client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("FLY_API_TOKEN"))
+    case Clutterfly.FlyAPI.wait_for_machine(client, @app_name, id) do
+      {:ok, %Req.Response{status: 200}} ->
+        Logger.info("wait_for_machine API call received OK 200")
+        {:ok, %{machine_id: id, status: :started}}
+
+      {:error, stuff} -> Logger.error("Waiting for Machine #{id} to start, got an error from the API: #{inspect stuff}")
+        {:error, %{stuff: stuff}}
+
+
+      other -> Logger.warning("wait_for_machine_to_start/1 returned unanticipated response #{inspect other}")
         {:error, "unanticipated response"}
     end
 

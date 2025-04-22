@@ -151,7 +151,7 @@ defmodule WhereMachinesWeb.CoreComponents do
       <.flash
         id="client-error"
         kind={:error}
-        title="We can't find the internet"
+        title="Client can't connect to the server"
         phx-disconnected={show(".phx-client-error #client-error")}
         phx-connected={hide("#client-error")}
         hidden
@@ -168,7 +168,7 @@ defmodule WhereMachinesWeb.CoreComponents do
         phx-connected={hide("#server-error")}
         hidden
       >
-        Hang in there while we get back on track
+        Attempting to recover
         <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />
       </.flash>
     </div>

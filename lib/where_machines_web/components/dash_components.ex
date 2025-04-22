@@ -5,8 +5,8 @@ defmodule WhereMachinesWeb.DashComponents do
   def machine_table(assigns) do
     ~H"""
     <!-- Machine table -->
-    <div class="panel col-span-3">
-      <h3 class="text-lg font-semibold text-yellow-300 mb-2">Useless Machines (Total {Enum.count(@machines)})</h3>
+    <div class={["panel", @live_action == :single && "col-span-4" || "col-span-3"]}>
+      <h3 class="text-lg font-semibold text-[#DAA520] mb-2">Useless Machines (Total {Enum.count(@machines)})</h3>
       <div class="w-full overflow-x-auto text-sm">
         <table class="min-w-full">
           <thead>
@@ -46,15 +46,14 @@ defmodule WhereMachinesWeb.DashComponents do
 
   def region_summaries(assigns) do
     ~H"""
-    <h3 class="text-lg font-semibold text-yellow-300 mb-2">Active Regions</h3>
+    <h3 class="text-lg font-semibold text-[#DAA520] mb-2">Active Regions</h3>
     <%= for {region, count} <- region_stats(@machines) do %>
       <p>{region}: {count}</p>
     <% end %>
     """
   end
 
-
-   @doc """
+  @doc """
   Number of Machines by region
   %{"ams" => 1}
   """
