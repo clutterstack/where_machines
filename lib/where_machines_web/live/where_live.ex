@@ -1,4 +1,4 @@
-defmodule WhereMachinesWeb.ChopAndChange do
+defmodule WhereMachinesWeb.WhereLive do
   use WhereMachinesWeb, :live_view
 
   alias WhereMachines.CityData
@@ -20,12 +20,11 @@ defmodule WhereMachinesWeb.ChopAndChange do
     initial_machines = MachineTracker.look_up_all_machines()
     live_action = socket.assigns.live_action
 
-
     {:ok, assign(socket,
       fly_edge_region: fly_edge_region,
       regions: regions_for_action(live_action),
       umachines: initial_machines,
-      our_mach: nil,
+      our_mach: our_mach_empty(live_action),
       page_title: "Where Machines",
       classes: "col-span-4 grid grid-cols-4" # TODO: Make this depend on @live_action
     )}
@@ -52,7 +51,7 @@ defmodule WhereMachinesWeb.ChopAndChange do
 
           <WhereMachinesWeb.Launchers.launcher variant={@live_action} regions={@regions} />
 
-          <div class="col-span-1 panel">
+          <div :if={@live_action == :all_regions} class="col-span-1 panel">
             <h3 class="text-lg font-semibold text-yellow-300 mb-2">Active Regions</h3>
             <%= for {region, count} <- region_stats(@umachines) do %>
               <p>{region}: {count}</p>
@@ -61,12 +60,12 @@ defmodule WhereMachinesWeb.ChopAndChange do
 
           <!-- Machine table -->
           <div class="panel col-span-3">
-            <h3 class="text-lg font-semibold text-yellow-300 mb-2">Machines (Total {Enum.count(@umachines)})</h3>
+            <h3 class="text-lg font-semibold text-yellow-300 mb-2">Useless Machines (Total {Enum.count(@umachines)})</h3>
             <div class="w-full overflow-x-auto text-sm">
               <table class="min-w-full">
                 <thead>
                   <tr>
-                    <th class="py-2 px-4 border-b border-zinc-700 text-left">ID</th>
+                    <th :if={@live_action == :all_regions} class="py-2 px-4 border-b border-zinc-700 text-left">ID</th>
                     <th class="py-2 px-4 border-b border-zinc-700 text-left">Region</th>
                     <th class="py-2 px-4 border-b border-zinc-700 text-left">Status</th>
                     <th class="py-2 px-4 border-b border-zinc-700 text-left">Last Update</th>
@@ -75,7 +74,7 @@ defmodule WhereMachinesWeb.ChopAndChange do
                 <tbody>
                   <%= for {id, status_map} <- @umachines do %>
                     <tr class="hover:bg-zinc-700 transition-colors">
-                      <td class="py-2 px-4 border-b border-zinc-700"><%= id %></td>
+                      <td :if={@live_action == :all_regions} class="py-2 px-4 border-b border-zinc-700"><%= id %></td>
                       <td class="py-2 px-4 border-b border-zinc-700"><%= status_map.region %></td>
                       <td class="py-2 px-4 border-b border-zinc-700">
                         <span class={status_class(status_map.status)}>
@@ -89,7 +88,7 @@ defmodule WhereMachinesWeb.ChopAndChange do
                   <% end %>
                   <%= if Enum.empty?(@umachines) do %>
                     <tr>
-                      <td colspan="5" class="py-4 text-center text-zinc-500">No active machines</td>
+                      <td colspan="5" class="py-4 text-center text-zinc-500">No Machines</td>
                     </tr>
                   <% end %>
                 </tbody>
@@ -116,7 +115,7 @@ defmodule WhereMachinesWeb.ChopAndChange do
   # Handle machine ready message from API controller via PubSub.
   #####################################################################
 
-  def handle_info({:machine_ready, {machine_id, _status_map}}, socket) do
+  def handle_info({:machine_ready, {machine_id, status_map}}, socket) do
     Logger.info("LiveView got :machine_ready from status controller via local PubSub.")
     # We're only set up to use this info in the single-button version of the LiveView
     if socket.assigns.live_action == :single do
@@ -131,7 +130,22 @@ defmodule WhereMachinesWeb.ChopAndChange do
         Process.send_after(self(), {:redirect_to_machine, our_mach}, 100)
       end
     end
-    {:noreply, socket}
+    {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
+  end
+
+  def handle_info({:our_mach_created, {_button_id, machine_id}}, socket) when socket.assigns.live_action == :single do
+
+    Logger.info("one-region LiveView received :our_mach_created message")
+    Logger.info("This means the MachineLauncher live component got a response from flaps and sent a message up to this LiveView.")
+    Logger.debug("Replacing the :our_mach assign with the specified Machine")
+    {:noreply, assign(socket, :our_mach, machine_id)}
+  end
+
+  def handle_info({:our_mach_created, {button_id, machine_id}}, socket)  do
+    Logger.info("all_regions LiveView received :our_mach_created message")
+    Logger.info("This means the MachineLauncher live component got a response from flaps and sent a message up to this LiveView.")
+    Logger.debug("Adding the Machine to the our_mach assign")
+    {:noreply, assign(socket, our_mach: Map.put(socket.assigns.our_mach, button_id, machine_id))}
   end
 
   def handle_info({:redirect_to_machine, mach_id}, socket) do
@@ -140,34 +154,12 @@ defmodule WhereMachinesWeb.ChopAndChange do
     # {:noreply, redirect(socket, external: "/machine/#{mach_id}")}
   end
 
-  def handle_info({:our_mach_created, {_button_id, machine_id}}, socket) when socket.assigns.live_action == :single do
-
-    Logger.info("one-region LiveView received :our_mach_created message")
-    Logger.info("This means the MachineLauncher live component got a response from flaps and sent a message up to this LiveView.")
-    Logger.debug("Replacing the :our_mach assign with the specified Machine")
-    case socket.assigns.live_action do
-        :single -> {:noreply, assign(socket, :our_mach, machine_id)}
-    end
-  end
-
-  def handle_info({:our_mach_created, {button_id, machine_id}}, socket)  do
-    Logger.info("all_regions LiveView received :our_mach_created message")
-    Logger.info("This means the MachineLauncher live component got a response from flaps and sent a message up to this LiveView.")
-    Logger.debug("Adding the Machine to the our_machines assign")
-    {:noreply, assign(socket, our_machines: Map.put(socket.assigns.our_machines, button_id, machine_id))}
-  end
-
   #####################################################################
   # Messages from PubSub
   #####################################################################
 
   def handle_info({:machine_added, {machine_id, status_map}}, socket) do
     Logger.info("MachineStatusLive: :machine_added for #{machine_id} via PubSub from Launcher component")
-    {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
-  end
-
-  def handle_info({:machine_ready, {machine_id, status_map}}, socket) do
-    Logger.info("MachineStatusLive: :machine_ready for #{machine_id} via local PubSub from status controller.")
     {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
   end
 
@@ -237,6 +229,13 @@ defmodule WhereMachinesWeb.ChopAndChange do
       :single -> [:local]
       :all_regions -> Map.keys(CityData.cities())
       _ -> Logger.error("live_action assign not recognised: #{action_atom}")
+    end
+  end
+
+  defp our_mach_empty(action_atom) do
+    case action_atom do
+      :single -> nil
+      :all_regions -> %{}
     end
   end
 
