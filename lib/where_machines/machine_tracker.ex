@@ -71,7 +71,7 @@ defmodule WhereMachines.MachineTracker do
     Logger.debug("In MachineTracker init")
     # Initial population from API
     send(self(), :update_all_from_api)
-    schedule_api_check()
+    # schedule_api_check()
     {:ok, %{
       update_ref: nil,
       last_api_refresh: nil,
@@ -264,6 +264,13 @@ end
   @impl true
   def handle_info({:machine_added, {machine_id, status_map}}, state) do
     Logger.info("Tracker got :machine_added message by PubSub from Launcher component")
+    :ets.insert(@table_name, {machine_id, status_map})
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:machine_started, {machine_id, status_map}}, state) do
+    Logger.info("Tracker got :machine_started message by PubSub from Launcher component")
     :ets.insert(@table_name, {machine_id, status_map})
     {:noreply, state}
   end

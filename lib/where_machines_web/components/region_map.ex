@@ -1,14 +1,28 @@
 defmodule WhereMachinesWeb.RegionMap do
   use Phoenix.Component
+  require Logger
 
   alias WhereMachines.CityData
 
   @bbox {0, 0, 800, 391}
+  @minx 0
+  @miny 10
+  @w 800
+  @h 320
+
+  attr :minx, :integer, default: @minx
+  attr :miny, :integer, default: @miny
+  attr :maxx, :integer, default: @minx + @w
+  attr :maxy, :integer, default: @miny + @h
+  attr :viewbox, :string, default: "#{@minx} #{@miny} #{@w} #{@h}"
+  attr :toppath, :string, default: "M #{@minx + 1} #{@miny + 0.5} H #{@w - 0.5}"
+  attr :btmpath, :string, default: "M #{@minx + 1} #{@miny + @h - 1} H #{@w - 0.5}"
 
   # Render the world map SVG
   def world_map_svg(assigns) do
+    # "0 0 800 391"
     ~H"""
-    <svg class="w-full h-full" viewBox="0 0 800 391" stroke-linecap="round" stroke-linejoin="round"  xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox={@viewbox} stroke-linecap="round" stroke-linejoin="round"  xmlns="http://www.w3.org/2000/svg">
       <defs>
         <filter id="goldGlow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="4" result="blur"/>
@@ -38,12 +52,18 @@ defmodule WhereMachinesWeb.RegionMap do
         />
       </g>
 
+      <path d={@toppath} stroke="#DAA520"
+          stroke-width="1" />
+
+      <path d={@btmpath} stroke="#DAA520"
+          stroke-width="1" />
+
       <%= for {x, y} <- coords(@regions) do %>
-        <circle cx={x} cy={y} r="10" fill="#e6bc2f" opacity="0.9" />
+        <circle cx={x} cy={y} r="6" fill="#e6bc2f" opacity="0.9" />
       <% end %>
 
       <%= for {x, y} <- coords(@our_regions) do %>
-        <circle cx={x} cy={y} r="10" fill="#2f2fe6" opacity="0.9" />
+        <circle cx={x} cy={y} r="8" fill="#facc15" opacity="0.9" />
       <% end %>
 
     </svg>

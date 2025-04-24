@@ -33,24 +33,25 @@ defmodule WhereMachinesWeb.WhereLive do
   # border border-yellow-200
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen container grid grid-cols-4 gap-8">
-
-      <div class="col-span-2">Your Fly.io edge region is <%= @fly_edge_region %></div>
+    <div class="min-h-screen grid grid-cols-4 gap-x-8 w-full content-start">
 
         <!-- Map -->
-        <div class="col-start-1 col-span-4 panel">
+        <div class="col-start-1 col-span-4 rounded-lg panel">
           <%= RegionMap.world_map_svg(%{regions: active_regions(@umachines), our_regions: active_regions(@our_mach)}) %>
-          <!-- Overlay text -->
-          <div class="text-xs text-zinc-200">
-            Active regions: <%= Enum.join(active_regions(@umachines), " ") %>
-          </div>
         </div>
 
+         <!-- Overlay text -->
+          <div class="font-mono text-xs text-zinc-200 self-start col-span-4">
+            Active regions: <%= Enum.join(active_regions(@umachines), " ") %><br>
+            Your Fly.io edge region is <%= @fly_edge_region %>
+
+          </div>
 
         <.live_component
           module={WhereMachinesWeb.MachineLauncher}
           id="machine-launcher"
           variant={@live_action}
+          fly_edge_region={@fly_edge_region}
           regions={@regions}
           our_mach_state={@our_mach_state} />
 
@@ -81,7 +82,7 @@ defmodule WhereMachinesWeb.WhereLive do
 
       if Map.has_key?(our_mach, machine_id) do
         Logger.info("Redirecting in 500ms")
-        Process.send_after(self(), {:redirect_to_machine, our_mach}, 500)
+        Process.send_after(self(), {:redirect_to_machine, machine_id}, 500)
       end
     end
 
@@ -120,6 +121,11 @@ defmodule WhereMachinesWeb.WhereLive do
 
   def handle_info({:machine_added, {machine_id, status_map}}, socket) do
     Logger.info("MachineStatusLive: :machine_added for #{machine_id} via PubSub from Launcher component")
+    {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
+  end
+
+  def handle_info({:machine_started, {machine_id, status_map}}, socket) do
+    Logger.info("MachineStatusLive: :machine_started for #{machine_id} via PubSub from Launcher component")
     {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
   end
 
@@ -170,12 +176,4 @@ defmodule WhereMachinesWeb.WhereLive do
       _ -> Logger.error("live_action assign not recognised: #{action_atom}")
     end
   end
-
-  defp our_mach_empty(action_atom) do
-    case action_atom do
-      :single -> nil
-      :all_regions -> %{}
-    end
-  end
-
 end

@@ -7,7 +7,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
   @reset_after_success 20000
   @reset_after_failure 5000
   @btn_class_single "absolute
-                  w-16 h-16 rounded-full
+                  w-10 h-10 sm:w-16 sm:h-16 rounded-full
                   border border-[#DAA520]
                   text-transparent
                   cursor-pointer z-10
@@ -17,7 +17,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
                   transition-all
                   duration-300"
 
-  @btn_class_multi "w-32 h-12 my-2 rounded-lg border border-[#DAA520]"
+  @btn_class_multi "px-4 py-2 my-2 rounded-lg border border-[#DAA520]"
 
   def mount(socket) do
     {:ok, socket}
@@ -31,12 +31,13 @@ defmodule WhereMachinesWeb.MachineLauncher do
         # inner_block: assigns.inner_block,
         regions: assigns.regions,
         variant: assigns.variant,
+        fly_edge_region: assigns.fly_edge_region,
         btn_class: assigns.variant == :single && @btn_class_single || @btn_class_multi,
         our_mach_state: assigns.our_mach_state)
       |> assign_new( # Only initialize buttons if not already set
         :buttons,
         fn ->
-          Map.new(assigns.regions,
+          Keyword.new(assigns.regions |> Enum.sort(),
           fn region ->
             {region, %{region: region,
               async: %Phoenix.LiveView.AsyncResult{
@@ -46,20 +47,20 @@ defmodule WhereMachinesWeb.MachineLauncher do
                 result: nil
               }}}
           end)
+          # |> Enum.sort_by( fn {key, _val} -> key end)
         end)
     }
   end
 
   def render(assigns) do
-
     ~H"""
-    <div class="col-span-4 grid grid-cols-subgrid">
+    <div class="col-span-4 grid grid-cols-4 gap-4 sm:gap-8">
 
       <%= if @variant == :single do %>
 
-          <div class="panel col-span-1">
+          <div class="panel col-span-1 flex flex-col justify-center items-center">
             <%= for {region, button} <- @buttons do %>
-              <div class="relative rounded-full border-2 border-zinc-700 w-20 h-20 flex justify-center items-center">
+              <div class="relative rounded-full border-2 border-zinc-700 w-12 h-12 sm:w-20 sm:h-20 flex justify-center items-center">
                 <button
                     id={"button-#{region}"}
                     phx-value-region={region}
@@ -75,7 +76,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
                     </span>
                 </button>
               </div>
-              <div class="text-2xl">START</div>
+              <div class="text-xl sm:text-2xl mt-4">START</div>
             <% end %>
           </div>
           <div class="panel col-span-3">
@@ -87,7 +88,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
 
       <% else %>
 
-          <div class="panel col-span-4 grid grid-cols-subgrid button-grid">
+          <div class="panel col-span-4 grid grid-cols-4 gap-x-4 sm:gap-x-6">
           <%= for {region, button} <- @buttons do %>
             <button
               id={"button-#{region}"}
@@ -99,9 +100,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
               class={[@btn_class,
                       button_class(button.async)
                       ]}>
-              <span class="button-content">
                 <%= button_text(button.async, region) %>
-              </span>
             </button>
           <% end %>
         </div>
@@ -201,9 +200,9 @@ defmodule WhereMachinesWeb.MachineLauncher do
   # Machine awaiter
 
   #{:ok, %{status: :started, machine_id: "d8d976ece50628"}}
-  def handle_async({:wait_for_machine_task, mach_id, button_id}, {:ok, {:ok, %{status: :started}}}, socket) do
+  def handle_async({:wait_for_machine_task, mach_id, button_id}, {:ok, {:ok, %{status: :started} = status_map}}, socket) do
     Logger.info("wait_for_machine_task returned {:ok, %{status: :started}}")
-    Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_started, mach_id})
+    Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_started, {mach_id, status_map}})
     updated_buttons = new_buttons_assign(button_id, :started, mach_id, socket.assigns.buttons)
     {:noreply,
     socket
@@ -258,7 +257,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
   #####################################################################
 
   defp new_buttons_assign(button_id, :reset, :idle, buttons) do
-    Map.update!(buttons, button_id, fn button ->
+    Keyword.update!(buttons, button_id, fn button ->
       %{button | async: %Phoenix.LiveView.AsyncResult{
         ok?: false,
         loading: nil,
@@ -269,33 +268,40 @@ defmodule WhereMachinesWeb.MachineLauncher do
   end
 
   defp new_buttons_assign(button_id, :ok, %{machine_id: machine_id, status_map: _status_map}, buttons) do
-    Map.update!(buttons, button_id, fn button ->
+    Keyword.update!(buttons, button_id, fn button ->
       %{button | async: AsyncResult.ok({machine_id, :created})}
     end)
   end
 
   defp new_buttons_assign(button_id, :started, machine_id, buttons) do
-    Map.update!(buttons, button_id, fn button ->
+    Keyword.update!(buttons, button_id, fn button ->
       %{button | async: AsyncResult.ok({machine_id, :started})}
     end)
   end
 
   defp new_buttons_assign(button_id, :ok, value, buttons) do
-    Map.update!(buttons, button_id, fn button ->
+    Keyword.update!(buttons, button_id, fn button ->
       %{button | async: AsyncResult.ok(value)}
     end)
   end
 
   defp new_buttons_assign(button_id, :failed, reason, buttons) do
-    Map.update!(buttons, button_id, fn button ->
+    Keyword.update!(buttons, button_id, fn button ->
       %{button | async: AsyncResult.failed(button.async, reason)}
     end)
   end
 
   defp new_buttons_assign(button_id, :loading, loading_state, buttons) do
-    Map.update!(buttons, button_id, fn button ->
+    Keyword.update!(buttons, button_id, fn button ->
       %{button | async: AsyncResult.loading(button.async, loading_state)}
     end)
+  end
+
+  defp sorted_buttons(buttons) do
+    buttons
+    # |> Map.to_list()
+    |> Enum.sort_by( fn {key, _val} -> key end)
+    # |> IO.inspect(label: "sorted buttons")
   end
 
   defp button_text(async, region) do
@@ -321,7 +327,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
       async.loading -> "btn bg-neutral-300"
       async.ok? && elem(async.result, 1) == :created -> "btn bg-amber-400" # {"78116d0f960798", :created}
       async.ok? && elem(async.result, 1) == :listening -> "btn bg-green-500" # {"78116d0f960798", :created}
-      async.ok? && elem(async.result, 1) == :started-> "btn bg-blue-300" # started
+      async.ok? && elem(async.result, 1) == :started-> "btn bg-sky-200" # started
       async.failed -> "btn bg-red-500"
       true -> "btn bg-stone-800"
     end
@@ -333,8 +339,8 @@ defmodule WhereMachinesWeb.MachineLauncher do
       async.ok? && elem(async.result, 1) == :started -> "Machine #{elem(async.result, 0)} started. Waiting for it to be ready to serve requests..."
       async.ok? && elem(async.result, 1) == :listening -> "Machine #{elem(async.result, 0)} ready! About to redirect..."
       async.ok? -> "Machine #{elem(async.result, 0)} created. Waiting for it to reach started state..."
-      async.failed -> "Failed to launch a new Useless Machine in the cloud: #{inspect async.result}"
-      true -> "Push button to create your Useless Machine in the cloud"
+      async.failed -> "Failed to launch a new Useless Machine: #{inspect async.result}"
+      true -> "Push the button to create your Useless Machine"
     end
   end
 

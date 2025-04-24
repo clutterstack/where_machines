@@ -18,7 +18,7 @@ defmodule WhereMachinesWeb.DashComponents do
             </tr>
           </thead>
           <tbody>
-            <%= for {id, status_map} <- @machines do %>
+            <%= for {id, status_map} <- sort_by_updated(@machines) do %>
               <tr class="hover:bg-zinc-700 transition-colors">
                 <td :if={@live_action == :all_regions} class="py-2 px-4 border-b border-zinc-700"><%= id %></td>
                 <td class="py-2 px-4 border-b border-zinc-700"><%= status_map.region %></td>
@@ -62,6 +62,17 @@ defmodule WhereMachinesWeb.DashComponents do
     |> Enum.reduce(%{}, fn {_key, %{region: region}}, acc ->
       Map.update(acc, region, 1, &(&1 + 1))
     end)
+    |> IO.inspect(label: "regions stats")
+  end
+
+  defp sort_by_updated(machines) do
+    sorted_machines = machines
+    # |> IO.inspect(label: "machines as map")
+    # |> Map.to_list()
+    |> Enum.sort_by(fn {_first, second} -> second.timestamp end)
+
+    # |> Enum.sort_by( fn {key, _val} -> key end)
+    # |> IO.inspect(label: "sorted buttons")
   end
 
   defp status_class("started"), do: "px-2 py-1 rounded bg-green-800 text-green-200"

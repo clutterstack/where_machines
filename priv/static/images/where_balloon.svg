@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- 0 0 1432.4214 2813.3364 -->
+<!-- Balance space to left of left vertical and right of r vertical:
+      134 260 1299 2813.3364
+    Left vert and r curve at edges:
+    "226 260 1206.4 2813.3364" 
+
+    viewBox="266 400 1054 2413.3364"viewBox="266 400 1054 2413.3364"
+      viewBox="0 0 1432.4214 2813.3364"-->
+      <!-- Left vertical line is at 226-->
+      <!-- right curve 1432.4214 =-->
+      <!-- old colour stroke:rgb(201,171,21);-->
+
+<svg
+  width="100%" height="100%"
+  viewBox="226 480 1206.4 2400"
+  version="1.1"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:svg="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="goldToPlatinum" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="20%" style="stop-color:#3f3f46;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:rgb(201,171,21);stop-opacity:1" />
+    </linearGradient>
+     <linearGradient id="diagonalGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="20%" style="stop-color::#3f3f46;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgb(201,171,21);stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="goldToPlatinumVert" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="30%" style="stop-color:#3f3f46;stop-opacity:1" />
+      <stop offset="80%" style="stop-color:rgb(201,171,21);stop-opacity:1" />
+    </linearGradient>
+  </defs>
+   
+  <path
+     d="M 226.45852,1671.8945 V 539.09838 c 0,0 1072.31608,-0.50025 1115.54458,0 68.9595,0.798 97.188,49.221 88.5248,96.5685 -10.1273,55.3515 -82.632,121.03725 -88.5248,126.43125 -56.1187,51.37425 -1115.54458,909.79637 -1115.54458,909.79637 z"
+     style="fill:none;stroke:url(#diagonalGradient);stroke-width:1px;" />
+  <path
+     d="m 0.37417,2575.422 c 0,0 1281.51043,-1727.93507 1341.62973,-1812.62507 55.8772,-78.714 78.804,-182.68425 0,-223.69875 C 1267.7696,500.46268 226.45852,0.3741775 226.45852,0.3741775"
+     style="fill:none;stroke:url(#diagonalGradient);stroke-width:1px;" />
+  <path
+     d="m 1342.0004,0 0.001,2812.58755"
+     style="fill:none;stroke:url(#goldToPlatinumVert);stroke-width:1px;" />
+
+    
+</svg>
