@@ -20,8 +20,8 @@ defmodule WhereMachinesWeb.DashComponents do
           <tbody>
             <%= for {id, status_map} <- sort_by_updated(@machines) do %>
               <tr class="hover:bg-zinc-700 transition-colors">
-                <td :if={@live_action == :all_regions} class="py-2 px-4 border-b border-zinc-700"><%= id %></td>
-                <td class="py-2 px-4 border-b border-zinc-700"><%= status_map.region %></td>
+                <td :if={@live_action == :all_regions} class="py-2 px-4 border-b border-zinc-700"><.link href={"https://useless-machine.fly.dev/machine?instance=" <> id}><%= id %></.link></td>
+                <td class="py-2 px-4 border-b border-zinc-700"><%= if Map.has_key?(status_map, :region) do %>{status_map.region}<% end %></td>
                 <td class="py-2 px-4 border-b border-zinc-700">
                   <span class={status_class(status_map.status)}>
                     <%= status_map.status %>
@@ -59,14 +59,17 @@ defmodule WhereMachinesWeb.DashComponents do
   """
   def region_stats(machines) do
     machines
-    |> Enum.reduce(%{}, fn {_key, %{region: region}}, acc ->
-      Map.update(acc, region, 1, &(&1 + 1))
+    |> Enum.reduce(%{}, fn
+      {_key, %{region: region}}, acc ->
+        Map.update(acc, region, 1, &(&1 + 1))
+      {_key, _machine_without_region}, acc ->
+        acc  # Skip machines without a region key
     end)
     |> IO.inspect(label: "regions stats")
   end
 
   defp sort_by_updated(machines) do
-    sorted_machines = machines
+    machines
     # |> IO.inspect(label: "machines as map")
     # |> Map.to_list()
     |> Enum.sort_by(fn {_first, second} -> second.timestamp end)

@@ -8,6 +8,9 @@ fly.toml
 cluster_with_remote.sh
 cities.csv
 fly_regions.csv
+Dockerfile
+.tool_versions
+
 
 # The directory Mix will write compiled artifacts to.
 /_build/

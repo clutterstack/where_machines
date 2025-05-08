@@ -12,6 +12,8 @@ defmodule WhereMachinesWeb.WhereLive do
       Phoenix.PubSub.subscribe(:where_pubsub, "machine_updates")
     end
 
+    Logger.info("LiveView mounted in #{fly_edge_region}")
+
     # Check which version the route wants
     live_action = socket.assigns.live_action
 
@@ -33,29 +35,51 @@ defmodule WhereMachinesWeb.WhereLive do
   # border border-yellow-200
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen grid grid-cols-4 gap-x-8 w-full content-start">
+    <div class="min-h-screen grid grid-cols-4 gap-x-8 w-full pt-8 sm:pt-12 content-start">
 
-        <!-- Map -->
+      <h1 class="text-2xl sm:text-3xl font-mono font-bold text-[#DAA520] tracking-widest
+                col-span-1 row-start-1 col-start-1 self-start
+                w-[8rem] sm:w-[14rem] my-4">
+                  LAUNCH A <br>USELESS <br> MACHINE<br> IN THE CLOUD
+      </h1>
+
+      <!-- Map at top for dashboard -->
+      <%= if @live_action !== :single do %>
+        <div class="col-start-1 col-span-4 rounded-lg panel">
+          <%= RegionMap.world_map_svg(%{regions: active_regions(@umachines), our_regions: active_regions(@our_mach)}) %>
+        </div>
+        <!-- Overlay text -->
+        <div class="font-mono text-xs text-zinc-200 self-start col-span-4">
+          Active regions: <%= Enum.join(active_regions(@umachines), " ") %><br>
+          Your Fly.io edge region is <%= CityData.short(@fly_edge_region) %>
+        </div>
+      <% end %>
+
+
+      <.live_component
+        module={WhereMachinesWeb.MachineLauncher}
+        id="machine-launcher"
+        variant={@live_action}
+        fly_edge_region={@fly_edge_region}
+        regions={@regions}
+        our_mach_state={@our_mach_state} />
+
+      <!-- Map below button in single mode -->
+      <%= if @live_action == :single do %>
+        <!-- Overlay text -->
+        <div class="font-mono text-xs text-zinc-200 self-start col-span-4 mt-4">
+          Your Fly.io edge region is <%= CityData.short(@fly_edge_region) %><br>
+          There are Useless Machines in: <%= Enum.join(active_regions(@umachines), " ") %>
+        </div>
+
         <div class="col-start-1 col-span-4 rounded-lg panel">
           <%= RegionMap.world_map_svg(%{regions: active_regions(@umachines), our_regions: active_regions(@our_mach)}) %>
         </div>
 
-         <!-- Overlay text -->
-          <div class="font-mono text-xs text-zinc-200 self-start col-span-4">
-            Active regions: <%= Enum.join(active_regions(@umachines), " ") %><br>
-            Your Fly.io edge region is <%= @fly_edge_region %>
 
-          </div>
+      <% end %>
 
-        <.live_component
-          module={WhereMachinesWeb.MachineLauncher}
-          id="machine-launcher"
-          variant={@live_action}
-          fly_edge_region={@fly_edge_region}
-          regions={@regions}
-          our_mach_state={@our_mach_state} />
-
-        <DashComponents.machine_table live_action={@live_action} machines={@umachines} />
+        <DashComponents.machine_table :if={@live_action == :all_regions} live_action={@live_action} machines={@umachines} />
 
         <div :if={@live_action == :all_regions} class="col-span-1 panel">
           <DashComponents.region_summaries machines={@umachines} />
@@ -70,7 +94,8 @@ defmodule WhereMachinesWeb.WhereLive do
   #####################################################################
 
   def handle_info({:machine_ready, {machine_id, status_map}}, socket) do
-    Logger.info("LiveView got :machine_ready from status controller via local PubSub.")
+    Logger.info("LiveView got :machine_ready from status controller via local PubSub")
+    Logger.info("for Machine #{machine_id} in #{status_map.region}")
 
     # The single-button version of the LiveView redirects to the new Machine, after making sure it's ours.
     # This is belt and braces, since the Useless Machine calls its requesting node back directly when it's ready
@@ -110,8 +135,8 @@ defmodule WhereMachinesWeb.WhereLive do
   end
 
   def handle_info({:redirect_to_machine, mach_id}, socket) do
-    Logger.info("About to try redirecting to https://useless-machine.fly.dev/machine/#{mach_id}")
-    {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine/#{mach_id}")}
+    Logger.info("About to try redirecting to https://useless-machine.fly.dev/machine?instance=#{mach_id}")
+    {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine?instance=#{mach_id}")}
     # {:noreply, redirect(socket, external: "/machine/#{mach_id}")}
   end
 
@@ -124,9 +149,9 @@ defmodule WhereMachinesWeb.WhereLive do
     {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
   end
 
-  def handle_info({:machine_started, {machine_id, status_map}}, socket) do
+  def handle_info({:machine_started, machine_id}, socket) do
     Logger.info("MachineStatusLive: :machine_started for #{machine_id} via PubSub from Launcher component")
-    {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
+    {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, :started}, socket))}
   end
 
   def handle_info({:machine_stopping, machine_id}, socket) do
@@ -153,6 +178,13 @@ defmodule WhereMachinesWeb.WhereLive do
   ################################################
   # Helpers to update machines assigns
   ################################################
+
+  # Update only the status to :started for an existing machine
+  defp new_machines_assign(:update, {machine_id, :started}, socket) do
+    Map.update(socket.assigns.umachines, machine_id, %{status: :started}, fn existing_map ->
+      Map.put(existing_map, :status, :started)
+    end)
+  end
 
   # Add or update a Machine
   defp new_machines_assign(:update, {machine_id, status_map}, socket) do

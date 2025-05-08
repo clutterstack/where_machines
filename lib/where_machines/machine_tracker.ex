@@ -176,7 +176,7 @@ end
   @impl true
   def handle_info(:update_all_from_api, state) do
     Logger.debug("MachineTracker received :update_all_from_api message.")
-    client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("FLY_API_TOKEN"))
+    client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("USELESS_API_TOKEN"))
     api_entries = case Clutterfly.Commands.get_mach_summaries(@app_name, client: client) do
       {:ok, api_machines} ->
         api_machines
@@ -264,14 +264,27 @@ end
   @impl true
   def handle_info({:machine_added, {machine_id, status_map}}, state) do
     Logger.info("Tracker got :machine_added message by PubSub from Launcher component")
+    Logger.info("Check status_map: #{inspect status_map}")
     :ets.insert(@table_name, {machine_id, status_map})
     {:noreply, state}
   end
 
   @impl true
-  def handle_info({:machine_started, {machine_id, status_map}}, state) do
+  def handle_info({:machine_started, machine_id}, state) do
     Logger.info("Tracker got :machine_started message by PubSub from Launcher component")
-    :ets.insert(@table_name, {machine_id, status_map})
+    # Look up the current record for this machine
+    case :ets.lookup(@table_name, machine_id) do
+      [{^machine_id, status_map}] ->
+        # Update the status map, keeping other fields intact
+        updated_map = Map.put(status_map, :status, :started)
+        # Store the updated record
+        :ets.insert(@table_name, {machine_id, updated_map})
+      [] ->
+        # Handle case where machine_id isn't found
+        # Perhaps create a new entry with default values
+        default_map = %{status: :started}
+        :ets.insert(@table_name, {machine_id, default_map})
+    end
     {:noreply, state}
   end
 

@@ -2,7 +2,7 @@
               w-screen sm:max-w-3xl 
               mx-auto 
               bg-zinc-900 ">
-  <div class="w-full px-[4%] sm:px-2
+  <div class="relative w-full px-[4%] sm:px-2
               bg-[url:var(--bg-image-big)] bg-[position:var(--bg-pos)] 
               md:bg-[url:var(--bg-image-big)]
               bg-no-repeat bg-cover"
@@ -11,14 +11,8 @@
                 --bg-pos: right top;"}
                 
     >
-    <header class="flex items-start justify-between pt-2 sm:pt-2">
-      
-      <h1 class="text-2xl sm:text-3xl font-mono font-bold text-[#DAA520] tracking-widest 
-                w-[8rem] sm:w-[20rem] my-4 sm:mt-12 sm:mb-6">
-                  LAUNCH YOUR USELESS<br> MACHINE<br> IN THE CLOUD
-      </h1>
-
-      <div class="flex items-center gap-4 text-sm sm:text-base font-semibold leading-6 text-zinc-200 mr-16 sm:mr-32">
+    <header class="flex justify-start pt-2 sm:pt-6">
+      <div class="flex items-center gap-4 text-sm sm:text-base font-light leading-6 text-zinc-200 mr-16 sm:mr-32">
         <a href="https://github.com/clutterstack" class="hover:text-zinc-700">
           GitHub
         </a>
@@ -26,8 +20,8 @@
           Bluesky
         </a>
       </div>
-
     </header>
+
     <main class="p-0">
       <.flash_group flash={@flash} />
       <%= @inner_content %>

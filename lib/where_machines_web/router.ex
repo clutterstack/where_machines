@@ -28,7 +28,7 @@ defmodule WhereMachinesWeb.Router do
     # live "/", IndexLive
     live "/", WhereLive, :single
     # live "/machines", MachinesDash
-    get "/machine/:mach_id", RedirectController, :redirect_to_machine
+    # get "/machine/:mach_id", RedirectController, :redirect_to_machine
   end
 
   # Other scopes may use custom stacks.

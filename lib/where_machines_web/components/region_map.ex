@@ -2,7 +2,8 @@ defmodule WhereMachinesWeb.RegionMap do
   use Phoenix.Component
   require Logger
 
-  alias WhereMachines.CityData
+
+  import WhereMachines.CityData
 
   @bbox {0, 0, 800, 391}
   @minx 0
@@ -59,7 +60,7 @@ defmodule WhereMachinesWeb.RegionMap do
           stroke-width="1" />
 
       <%= for {x, y} <- coords(@regions) do %>
-        <circle cx={x} cy={y} r="6" fill="#e6bc2f" opacity="0.9" />
+        <circle cx={x} cy={y} r="4" fill="#e6bc2f" opacity="0.9" />
       <% end %>
 
       <%= for {x, y} <- coords(@our_regions) do %>
@@ -79,14 +80,18 @@ defmodule WhereMachinesWeb.RegionMap do
     |> Enum.map(fn region -> city_to_svg(region, @bbox) end)
   end
 
-  def city_to_svg(city, bbox) do
-    city_atom = String.to_existing_atom(city)
-    {long, lat} = CityData.cities[city_atom] # |> IO.inspect(label: "{long, lat} for #{city}")
-    # latlong_to_svg({long, lat}, bbox)
-    point = wgs84_to_svg({long, lat}, bbox) #|> IO.inspect(label: "transformed to point")
-    point
+
+  def city_to_svg("unknown", _bbox) do
+    {-1, -1}
   end
 
+  def city_to_svg(city, bbox) when city != "unknown" do
+      city_atom = String.to_existing_atom(city) |> IO.inspect()
+      {long, lat} = cities()[city_atom] # |> IO.inspect(label: "{long, lat} for #{city}")
+      # latlong_to_svg({long, lat}, bbox)
+      point = wgs84_to_svg({long, lat}, bbox) #|> IO.inspect(label: "transformed to point")
+      point
+  end
 
   @doc """
     Transforms WGS84 (EPSG:4326) lat/long coordinates to SVG x/y positions.

@@ -9,7 +9,10 @@ defmodule WhereMachines.MachineParams do
           "PORT": "4040",
           "PRIMARY_REGION": "yyz",
           "REQUESTOR_IP": requestor_ip,
-          "REQUESTOR_API_PORT": "4001"
+          "REQUESTOR_API_PORT": "4001",
+          "USELESS_MACHINE_END_STATE": "stopped", #if "stopped" (default), the Machine will stop after the sequence runs.
+          "USELESS_MACHINE_FINAL_VIEW": "bye", # If "bye" (default), the liveview redirects to a controller view to close the ws connection
+          "USELESS_MACHINE_LIFE_CYCLE_END": "stopped" # if "stopped" (default) the LifeCycle genserver shuts it down after TTL
         },
         guest: %{
           cpu_kind: "shared",
@@ -41,12 +44,17 @@ defmodule WhereMachines.MachineParams do
             ],
             concurrency: %{
               type: "connections",
-              hard_limit: 100,
-              soft_limit: 50
+              hard_limit: 25,
+              soft_limit: 25
             }
           }
         ],
-        image: "registry.fly.io/useless-machine:deployment-01JSMM22YZQZDXVVR1ETBVVWZ4",
+        # image: "registry.fly.io/useless-machine:yesplg-nochk-shutdown",
+        # image: "registry.fly.io/useless-machine:yesplg-yeschk-shutdown",
+        # image: "registry.fly.io/useless-machine:replay-cache-options",
+        # image: "registry.fly.io/useless-machine:replay-cache-bye-shut-nicename",
+        # image: "registry.fly.io/useless-machine:latest",
+        image: "registry.fly.io/useless-machine:what-on-earth",
         auto_destroy: true,
         restart: %{
           policy: "on-failure",

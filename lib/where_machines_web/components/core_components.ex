@@ -151,7 +151,7 @@ defmodule WhereMachinesWeb.CoreComponents do
       <.flash
         id="client-error"
         kind={:error}
-        title="Client can't connect to the server"
+        title="Client not connected to the server"
         phx-disconnected={show(".phx-client-error #client-error")}
         phx-connected={hide("#client-error")}
         hidden

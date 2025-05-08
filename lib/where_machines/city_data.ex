@@ -35,8 +35,56 @@ defmodule WhereMachines.CityData do
     syd: {151,-34},
     nrt: {140,36},
     yyz: {-80,44},
-    waw: {21,52}
+    waw: {21,52},
+    unknown: {0,0}
     }
+    @short %{
+      ams: "Amsterdam",
+      iad: "Ashburn",
+      atl: "Atlanta" ,
+      bog: "Bogotá",
+      bos: "Boston",
+      otp: "Bucharest",
+      ord: "Chicago",
+      dfw: "Dallas",
+      den: "Denver",
+      eze: "Ezeiza",
+      fra: "Frankfurt",
+      gdl: "Guadalajara",
+      hkg: "Hong Kong",
+      jnb: "Johannesburg",
+      lhr: "London",
+      lax: "Los Angeles",
+      mad: "Madrid",
+      mia: "Miami",
+      yul: "Montreal",
+      bom: "Mumbai",
+      cdg: "Paris",
+      phx: "Phoenix",
+      qro: "Querétaro",
+      gig: "Rio de Janeiro",
+      sjc: "San Jose",
+      scl: "Santiago",
+      gru: "Sao Paulo",
+      sea: "Seattle",
+      ewr: "Secaucus",
+      sin: "Singapore",
+      arn: "Stockholm",
+      syd: "Sydney",
+      nrt: "Tokyo",
+      yyz: "Toronto",
+      waw: "Warsaw"
+    }
+
+
+  def short([]) do
+    "your computer"
+  end
+
+  def short(region_code) do
+    key = String.to_existing_atom(region_code)
+    @short[key]
+  end
 
   def cities do
     @cities
