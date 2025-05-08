@@ -11,6 +11,11 @@ config :where_machines,
   ecto_repos: [WhereMachines.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :where_machines, WhereMachines.AutoSpawner,
+interval: 60_000,  # 1 minute between spawns
+regions: [:ams, :ord, :syd, :lhr, :yyz], # Subset of regions to use
+auto_start: true   # Start spawning on application boot
+
 # Configures the endpoint
 config :where_machines, WhereMachinesWeb.Endpoint,
   url: [host: "localhost"],

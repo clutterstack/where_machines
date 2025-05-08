@@ -18,9 +18,7 @@ defmodule WhereMachines.Application do
       {Phoenix.PubSub, name: :where_pubsub},
       # Start MachineTracker to monitor useless_machine instances
       WhereMachines.MachineTracker,
-      # Start a worker by calling: WhereMachines.Worker.start_link(arg)
-      # {WhereMachines.Worker, arg},
-      # Start to serve requests, typically the last entry
+      WhereMachines.AutoSpawner,
       WhereMachines.NodeObserver,
       WhereMachinesWeb.Endpoint,
       WhereMachinesWeb.APIEndpoint,
