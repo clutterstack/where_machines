@@ -76,14 +76,13 @@ defmodule WhereMachines.CityData do
       waw: "Warsaw"
     }
 
+  def short([region_code]) when is_binary(region_code) do
+    key = String.to_existing_atom(region_code)
+    @short[key]
+  end
 
   def short([]) do
     "your computer"
-  end
-
-  def short(region_code) do
-    key = String.to_existing_atom(region_code)
-    @short[key]
   end
 
   def cities do
