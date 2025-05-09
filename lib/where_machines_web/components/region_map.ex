@@ -31,6 +31,12 @@ defmodule WhereMachinesWeb.RegionMap do
           <feComposite in="glowColor" in2="blur" operator="in" result="softGlow"/>
           <feComposite in="softGlow" in2="SourceGraphic" operator="over"/>
         </filter>
+        <!-- Radial gradient for our blue markers -->
+        <radialGradient id="blueRadial" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+          <stop offset="60%" stop-color="#77b5fe" stop-opacity="1"/>
+          <stop offset="80%" stop-color="#77b5fe" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#77b5fe" stop-opacity="0.2"/>
+        </radialGradient>
         <!-- Gradient for metallic effect -->
         <linearGradient id="platinumFill" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#E5E4E240"/>
@@ -60,15 +66,26 @@ defmodule WhereMachinesWeb.RegionMap do
           stroke-width="1" />
 
       <%= for {x, y} <- coords(@regions) do %>
-        <circle cx={x} cy={y} r="4" fill="#e6bc2f" opacity="0.9" />
+        <circle cx={x} cy={y} r="5" fill="#e6bc2f" opacity="0.9" />
       <% end %>
 
       <%= for {x, y} <- coords(@our_regions) do %>
-        <circle cx={x} cy={y} r="8" fill="#facc15" opacity="0.9" />
+
+      <!-- Outer gradient circle with animation -->
+        <circle
+          cx={x}
+          cy={y}
+          stroke="none"
+          fill="url(#blueRadial)">
+          <animate attributeName="r" values="6;8;6" dur="4s" repeatCount="indefinite" />
+        </circle>
+
       <% end %>
 
     </svg>
     """
+    # <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
+
   end
 
   @doc """

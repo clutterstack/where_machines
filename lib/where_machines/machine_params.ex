@@ -12,7 +12,8 @@ defmodule WhereMachines.MachineParams do
           "REQUESTOR_API_PORT": "4001",
           "USELESS_MACHINE_END_STATE": "stopped", #if "stopped" (default), the Machine will stop after the sequence runs.
           "USELESS_MACHINE_FINAL_VIEW": "bye", # If "bye" (default), the liveview redirects to a controller view to close the ws connection
-          "USELESS_MACHINE_LIFE_CYCLE_END": "stopped" # if "stopped" (default) the LifeCycle genserver shuts it down after TTL
+          "USELESS_MACHINE_LIFE_CYCLE_END": "stopped", # if "stopped" (default) the LifeCycle genserver shuts it down after TTL
+          "USELESS_MACHINE_SHUTDOWN_TIMEOUT": "20000"
         },
         guest: %{
           cpu_kind: "shared",

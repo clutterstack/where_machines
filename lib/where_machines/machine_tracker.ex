@@ -307,7 +307,7 @@ end
   # When we hear a Machine is ready, update its state (insert if it's not already there)
   @impl true
   def handle_info({:machine_ready, {machine_id, status_map}}, state) do
-    Logger.info("MachineTracker: :machine_ready for #{machine_id} from status controller via local PubSub")
+    Logger.debug("MachineTracker: :machine_ready for #{machine_id} from status controller via local PubSub")
     :ets.insert(@table_name, {machine_id, status_map})
     {:noreply, state}
   end
@@ -315,7 +315,7 @@ end
   # Remove a finished Machine from the table
   @impl true
   def handle_info({:machine_stopping, machine_id}, state) do
-    Logger.info("MachineTracker: PubSub :machine_stopping message received from controller")
+    Logger.debug("MachineTracker: PubSub :machine_stopping message received from controller")
     :ets.delete(@table_name, machine_id)
     {:noreply, state}
   end

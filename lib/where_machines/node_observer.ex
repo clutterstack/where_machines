@@ -2,7 +2,7 @@ defmodule WhereMachines.NodeObserver do
   use GenServer
   require Logger
 
-  @check_interval 5 * 60 * 1000  # 5 minutes
+  @check_interval 1 * 60 * 1000  # 5 minutes
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
@@ -60,7 +60,7 @@ defmodule WhereMachines.NodeObserver do
   defp resolve_internal_dns(app_name) do
     dns_name = "#{app_name}.internal"
 
-    case :inet_res.getbyname(String.to_charlist(dns_name), :a) do
+    case :inet_res.getbyname(String.to_charlist(dns_name), :aaaa) do
       {:ok, {:hostent, _hostname, _aliases, :inet, _size, addresses}} ->
         {:ok, Enum.map(addresses, &:inet.ntoa/1)}
       error ->

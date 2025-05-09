@@ -12,8 +12,6 @@ defmodule WhereMachines.ClusterState do
 
     Logger.info("ClusterState initializing on node #{node_name}. Connected nodes: #{inspect connected_nodes}")
     Logger.info("Subscribing to app:status topic")
-
-    Logger.info("Subscription to app:status complete")
     {:ok, {Phoenix.PubSub.subscribe(:where_pubsub, "app:status")}}
   end
 
