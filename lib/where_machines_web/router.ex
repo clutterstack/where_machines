@@ -24,15 +24,11 @@ defmodule WhereMachinesWeb.Router do
 
   scope "/", WhereMachinesWeb do
     pipe_through :browser
-    # get "/", PageController, :home
-    # live "/", IndexLive
     live "/", WhereLive, :single
-    # live "/machines", MachinesDash
-    # get "/machine/:mach_id", RedirectController, :redirect_to_machine
   end
 
   # Other scopes may use custom stacks.
-  # TODO: make /api 6pn only -- put it on a different port
+  # /api is 6pn only -- it runs on port 4001
   scope "/api", WhereMachinesWeb do
     pipe_through :api
     post "/machine_status", APIController, :update

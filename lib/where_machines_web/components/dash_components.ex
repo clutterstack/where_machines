@@ -65,7 +65,7 @@ defmodule WhereMachinesWeb.DashComponents do
       {_key, _machine_without_region}, acc ->
         acc  # Skip machines without a region key
     end)
-    |> IO.inspect(label: "regions stats")
+    # |> IO.inspect(label: "regions stats")
   end
 
   defp sort_by_updated(machines) do

@@ -86,7 +86,7 @@ defmodule WhereMachinesWeb.RegionMap do
   end
 
   def city_to_svg(city, bbox) when city != "unknown" do
-      city_atom = String.to_existing_atom(city) |> IO.inspect()
+      city_atom = String.to_existing_atom(city) # |> IO.inspect()
       {long, lat} = cities()[city_atom] # |> IO.inspect(label: "{long, lat} for #{city}")
       # latlong_to_svg({long, lat}, bbox)
       point = wgs84_to_svg({long, lat}, bbox) #|> IO.inspect(label: "transformed to point")

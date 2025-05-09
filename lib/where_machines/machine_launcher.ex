@@ -52,7 +52,7 @@ defmodule WhereMachines.MachineLauncher do
     client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("USELESS_API_TOKEN"))
     case Clutterfly.FlyAPI.wait_for_machine(client, @app_name, id) do
       {:ok, %Req.Response{status: 200}} ->
-        Logger.info("wait_for_machine API call received OK 200")
+        Logger.debug("wait_for_machine API call received OK 200")
         {:ok, %{machine_id: id, status: :started}}
 
       {:error, stuff} -> Logger.error("Waiting for Machine #{id} to start, got an error from the API: #{inspect stuff}")

@@ -221,7 +221,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
 
   #{:ok, %{status: :started, machine_id: "d8d976ece50628"}}
   def handle_async({:wait_for_machine_task, mach_id, button_id}, {:ok, {:ok, %{status: :started}}}, socket) do
-    Logger.info("wait_for_machine_task returned {:ok, %{status: :started}}")
+    Logger.debug("wait_for_machine_task returned {:ok, %{status: :started}}")
     Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_started, mach_id})
     updated_buttons = new_buttons_assign(button_id, :started, mach_id, socket.assigns.buttons)
     {:noreply,
@@ -316,13 +316,6 @@ defmodule WhereMachinesWeb.MachineLauncher do
       %{button | async: AsyncResult.loading(button.async, loading_state)}
     end)
   end
-
-  # defp sorted_buttons(buttons) do
-  #   buttons
-  #   # |> Map.to_list()
-  #   |> Enum.sort_by( fn {key, _val} -> key end)
-  #   # |> IO.inspect(label: "sorted buttons")
-  # end
 
   defp button_text(async, region) do
     cond do

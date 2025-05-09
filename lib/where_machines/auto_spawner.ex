@@ -118,7 +118,7 @@ defmodule WhereMachines.AutoSpawner do
   defp log_spawn_attempt(region, result) do
     case result do
       {:ok, %{machine_id: id, status_map: %{region: actual_region}}} ->
-        Logger.info("AutoSpawner successfully launched machine #{id} in #{actual_region} (requested: #{region})")
+        Logger.debug("AutoSpawner successfully launched machine #{id} in #{actual_region} (requested: #{region})")
       {:error, %{reason: reason}} ->
         Logger.warning("AutoSpawner failed to launch machine in #{region}: #{reason}")
       _ ->

@@ -263,15 +263,15 @@ end
 
   @impl true
   def handle_info({:machine_added, {machine_id, status_map}}, state) do
-    Logger.info("Tracker got :machine_added message by PubSub from Launcher component")
-    Logger.info("Check status_map: #{inspect status_map}")
+    Logger.debug("Tracker got :machine_added message by PubSub from Launcher component")
+    Logger.debug("Check status_map: #{inspect status_map}")
     :ets.insert(@table_name, {machine_id, status_map})
     {:noreply, state}
   end
 
   @impl true
   def handle_info({:machine_started, machine_id}, state) do
-    Logger.info("Tracker got :machine_started message by PubSub from Launcher component")
+    Logger.debug("Tracker got :machine_started message by PubSub from Launcher component")
     # Look up the current record for this machine
     case :ets.lookup(@table_name, machine_id) do
       [{^machine_id, status_map}] ->

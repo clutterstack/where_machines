@@ -94,13 +94,12 @@ defmodule WhereMachinesWeb.WhereLive do
   #####################################################################
 
   def handle_info({:machine_ready, {machine_id, status_map}}, socket) do
-    Logger.info("LiveView got :machine_ready from status controller via local PubSub")
-    Logger.info("for Machine #{machine_id} in #{status_map.region}")
+    Logger.debug("LiveView got :machine_ready via local PubSub for Machine #{machine_id} in #{status_map.region}")
 
     # The single-button version of the LiveView redirects to the new Machine, after making sure it's ours.
     # This is belt and braces, since the Useless Machine calls its requesting node back directly when it's ready
     if socket.assigns.live_action == :single do
-      Logger.info("Checking if it's our Machine.")
+      Logger.debug("Checking if it's our Machine.")
       our_mach = socket.assigns.our_mach
 
       Logger.debug("our_mach: #{inspect our_mach}; machine: #{machine_id}")
@@ -128,14 +127,14 @@ defmodule WhereMachinesWeb.WhereLive do
 
   # TODO: clean up old machines in the our_mach assign
   def handle_info({:our_mach_created, {machine_id, status_map}}, socket)  do
-    Logger.info("LiveView received :our_mach_created message for Machine #{machine_id} in #{status_map.region}")
-    Logger.info("This means the MachineLauncher live component got a response from flaps and sent a message up to this LiveView.")
+    Logger.debug("LiveView received :our_mach_created message for Machine #{machine_id} in #{status_map.region}")
+    Logger.debug("This means the MachineLauncher live component got a response from flaps and sent a message up to this LiveView.")
     Logger.debug("Adding the Machine to the our_mach assign")
     {:noreply, assign(socket, our_mach: Map.put(socket.assigns.our_mach, machine_id, status_map))}
   end
 
   def handle_info({:redirect_to_machine, mach_id}, socket) do
-    Logger.info("About to try redirecting to https://useless-machine.fly.dev/machine?instance=#{mach_id}")
+    Logger.debug("About to try redirecting to https://useless-machine.fly.dev/machine?instance=#{mach_id}")
     {:noreply, redirect(socket, external: "https://useless-machine.fly.dev/machine?instance=#{mach_id}")}
     # {:noreply, redirect(socket, external: "/machine/#{mach_id}")}
   end
@@ -145,27 +144,27 @@ defmodule WhereMachinesWeb.WhereLive do
   #####################################################################
 
   def handle_info({:machine_added, {machine_id, status_map}}, socket) do
-    Logger.info("MachineStatusLive: :machine_added for #{machine_id} via PubSub from Launcher component")
+    Logger.debug("MachineStatusLive: :machine_added for #{machine_id} via PubSub from Launcher component")
     {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, status_map}, socket))}
   end
 
   def handle_info({:machine_started, machine_id}, socket) do
-    Logger.info("MachineStatusLive: :machine_started for #{machine_id} via PubSub from Launcher component")
+    Logger.debug("MachineStatusLive: :machine_started for #{machine_id} via PubSub from Launcher component")
     {:noreply, assign(socket, umachines: new_machines_assign(:update, {machine_id, :started}, socket))}
   end
 
   def handle_info({:machine_stopping, machine_id}, socket) do
-    Logger.info("MachineStatusLive: :machine_stopping for #{machine_id} via PubSub from status controller.")
+    Logger.debug("MachineStatusLive: :machine_stopping for #{machine_id} via PubSub from status controller.")
     {:noreply, assign(socket, umachines: new_machines_assign(:remove, machine_id, socket))}
   end
 
   def handle_info({:machine_removed, machine_id}, socket) do
-    Logger.info("MachineStatusLive: :machine_removed for #{machine_id} via PubSub from tracker.")
+    Logger.debug("MachineStatusLive: :machine_removed for #{machine_id} via PubSub from tracker.")
     {:noreply, assign(socket, umachines: new_machines_assign(:remove, machine_id, socket))}
   end
 
   def handle_info({:replaced_from_api,{machine_id, status_map}}, socket) do
-    Logger.info("MachineStatusLive received :replaced_from_api for #{machine_id}.")
+    Logger.debug("MachineStatusLive received :replaced_from_api for #{machine_id}.")
     {:noreply, assign(socket, umachines: new_machines_assign(:update,{machine_id, status_map}, socket))}
     # update_assigns_from_table(socket)
   end
