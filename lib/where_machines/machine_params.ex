@@ -5,8 +5,8 @@ defmodule WhereMachines.MachineParams do
 
      # Set timeout based on source
     timeout = case source do
-      :auto -> "20000"  # 20 seconds for auto-spawned
-      :manual -> "60000"  # 60 seconds for manually spawned
+      :auto -> "60000"  # for auto-spawned
+      :manual -> "60000"  # for manually spawned
     end
 
     %{
@@ -63,7 +63,10 @@ defmodule WhereMachines.MachineParams do
         # image: "registry.fly.io/useless-machine:replay-cache-bye-shut-nicename",
         # image: "registry.fly.io/useless-machine:latest",
         # image: "registry.fly.io/useless-machine:what-on-earth",
-        image: "registry.fly.io/useless-machine:timeout-conf",
+        # image: "registry.fly.io/useless-machine:timeout-conf",
+        image: "registry.fly.io/useless-machine:status-fallback",
+
+
         auto_destroy: true,
         restart: %{
           policy: "on-failure",

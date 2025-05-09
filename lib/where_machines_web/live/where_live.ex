@@ -155,18 +155,34 @@ defmodule WhereMachinesWeb.WhereLive do
 
   def handle_info({:machine_stopping, machine_id}, socket) do
     Logger.debug("MachineStatusLive: :machine_stopping for #{machine_id} via PubSub from status controller.")
-    {:noreply, assign(socket, umachines: new_machines_assign(:remove, machine_id, socket))}
+    {:noreply, socket
+      |> assign(:umachines, new_machines_assign(:remove, machine_id, socket))
+      |> assign(:our_mach, Map.delete(socket.assigns.our_mach, machine_id))
+    }
   end
 
   def handle_info({:machine_removed, machine_id}, socket) do
     Logger.debug("MachineStatusLive: :machine_removed for #{machine_id} via PubSub from tracker.")
-    {:noreply, assign(socket, umachines: new_machines_assign(:remove, machine_id, socket))}
+    {:noreply, socket
+      |> assign(:umachines, new_machines_assign(:remove, machine_id, socket))
+      |> assign(:our_mach, Map.delete(socket.assigns.our_mach, machine_id))
+    }
   end
 
-  def handle_info({:replaced_from_api,{machine_id, status_map}}, socket) do
+  def handle_info({:replaced_from_api, {machine_id, status_map}}, socket) do
     Logger.debug("MachineStatusLive received :replaced_from_api for #{machine_id}.")
-    {:noreply, assign(socket, umachines: new_machines_assign(:update,{machine_id, status_map}, socket))}
-    # update_assigns_from_table(socket)
+
+    # If this machine is in our_mach, update it there too
+    updated_our_mach = if Map.has_key?(socket.assigns.our_mach, machine_id) do
+      Map.put(socket.assigns.our_mach, machine_id, status_map)
+    else
+      socket.assigns.our_mach
+    end
+
+    {:noreply, socket
+      |> assign(:umachines, new_machines_assign(:update, {machine_id, status_map}, socket))
+      |> assign(:our_mach, updated_our_mach)
+    }
   end
 
   def handle_info(message, socket) do

@@ -19,7 +19,7 @@ defmodule WhereMachines.Application do
       # Start MachineTracker to monitor useless_machine instances
       WhereMachines.MachineTracker,
       {WhereMachines.AutoSpawner, Application.get_env(:where_machines, WhereMachines.AutoSpawner, [])},
-      WhereMachines.NodeObserver,
+      WhereMachines.ClusterState,
       WhereMachinesWeb.Endpoint,
       WhereMachinesWeb.APIEndpoint
     ]

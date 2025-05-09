@@ -2,34 +2,71 @@ defmodule WhereMachines.ClusterState do
   use GenServer
   require Logger
 
+  @check_interval 20 * 60 * 1000  # 20 minutes
+
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
   def init(_) do
+    # This enables more detailed monitoring
+    :net_kernel.monitor_nodes(true, [:nodedown_reason])
+
     node_name = Node.self()
     connected_nodes = Node.list()
 
-    Logger.info("ClusterState initializing on node #{node_name}. Connected nodes: #{inspect connected_nodes}")
-    Logger.info("Subscribing to app:status topic")
-    {:ok, {Phoenix.PubSub.subscribe(:where_pubsub, "app:status")}}
+    Logger.info("Node observer started on #{node_name}. Connected nodes: #{inspect connected_nodes}")
+
+    # Schedule regular health checks
+    Process.send_after(self(), :check_cluster_health, @check_interval)
+
+    {:ok, %{last_nodes: connected_nodes}}
   end
 
-  def handle_info({:app_started, node}, state) do
-    Logger.info("✅ app_started message received from node: #{inspect node}")
-    IO.puts("Application started on node: #{inspect node}")
-    IO.puts("state? #{inspect state}")
-    {:noreply, state}
+  def handle_info({:nodeup, node}, state) do
+    Logger.info("🟢 Node connected: #{node}")
+    {:noreply, %{state | last_nodes: Node.list()}}
   end
 
-  def get_6pn() do
-    {:ok, addrs} = :inet.getifaddrs()
-    ipv6_addresses = for {interface, opts} <- addrs,
-                        {:addr, addr} <- opts,
-                        tuple_size(addr) == 8 do  # IPv6 addresses are 8-tuples
-                          {interface, addr}
-                        end
-    IO.inspect(ipv6_addresses, label: "IPv6 Addresses")
+  def handle_info({:nodedown, node, reason}, state) do
+    Logger.warning("🔴 Node disconnected: #{node}, reason: #{inspect(reason)}")
+    {:noreply, %{state | last_nodes: Node.list()}}
+  end
+
+  # Fallback for old-style nodedown messages (without reason)
+  def handle_info({:nodedown, node}, state) do
+    Logger.warning("🔴 Node disconnected: #{node}, no reason provided")
+    {:noreply, %{state | last_nodes: Node.list()}}
+  end
+
+  def handle_info(:check_cluster_health, state) do
+    current_nodes = Node.list()
+    app_name = System.get_env("FLY_APP_NAME") || "where"
+
+    Logger.info("Cluster health check - Current node: #{Node.self()}")
+    Logger.info("Connected nodes (#{length(current_nodes)}): #{inspect current_nodes}")
+
+    # Check for DNS resolution - this can help diagnose cluster issues
+    dns_check = resolve_internal_dns(app_name)
+    Logger.debug("DNS resolution for #{app_name}.internal: #{inspect dns_check}")
+
+    # Schedule next check
+    Process.send_after(self(), :check_cluster_health, @check_interval)
+
+    {:noreply, %{state | last_nodes: current_nodes}}
+  end
+
+  # Helper for DNS diagnostics
+  defp resolve_internal_dns(app_name) do
+    dns_name = "#{app_name}.internal"
+
+    case :inet_res.getbyname(String.to_charlist(dns_name), :aaaa) do
+      {:ok, {:hostent, _hostname, _aliases, address_family, _size, addresses}}
+        when address_family in [:inet, :inet6] ->
+        {:ok, Enum.map(addresses, &:inet.ntoa/1)}
+      error ->
+        {:error, error}
+    end
   end
 
 end
