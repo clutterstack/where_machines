@@ -1,7 +1,14 @@
 defmodule WhereMachines.MachineParams do
 
-  def useless_params do
+  def useless_params(source) do
     requestor_ip = System.get_env("FLY_PRIVATE_IP")
+
+     # Set timeout based on source
+    timeout = case source do
+      :auto -> "20000"  # 20 seconds for auto-spawned
+      :manual -> "60000"  # 60 seconds for manually spawned
+    end
+
     %{
       config: %{
         env: %{
@@ -13,7 +20,7 @@ defmodule WhereMachines.MachineParams do
           "USELESS_MACHINE_END_STATE": "stopped", #if "stopped" (default), the Machine will stop after the sequence runs.
           "USELESS_MACHINE_FINAL_VIEW": "bye", # If "bye" (default), the liveview redirects to a controller view to close the ws connection
           "USELESS_MACHINE_LIFE_CYCLE_END": "stopped", # if "stopped" (default) the LifeCycle genserver shuts it down after TTL
-          "USELESS_MACHINE_SHUTDOWN_TIMEOUT": "20000"
+          "USELESS_MACHINE_SHUTDOWN_TIMEOUT": timeout
         },
         guest: %{
           cpu_kind: "shared",
@@ -55,7 +62,8 @@ defmodule WhereMachines.MachineParams do
         # image: "registry.fly.io/useless-machine:replay-cache-options",
         # image: "registry.fly.io/useless-machine:replay-cache-bye-shut-nicename",
         # image: "registry.fly.io/useless-machine:latest",
-        image: "registry.fly.io/useless-machine:what-on-earth",
+        # image: "registry.fly.io/useless-machine:what-on-earth",
+        image: "registry.fly.io/useless-machine:timeout-conf",
         auto_destroy: true,
         restart: %{
           policy: "on-failure",

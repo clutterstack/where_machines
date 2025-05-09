@@ -30,7 +30,11 @@ defmodule WhereMachines.MachineLauncher do
 
   defp spawn_machine(id, requested_region) do
     client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("USELESS_API_TOKEN"))
-    case Clutterfly.FlyAPI.create_machine(client, @app_name, Enum.into(%{region: requested_region}, useless_params())) do
+
+    # Determine source based on id
+    source = if id == "auto-spawner", do: :auto, else: :manual
+
+    case Clutterfly.FlyAPI.create_machine(client, @app_name, Enum.into(%{region: requested_region}, useless_params(source))) do
       {:ok, %{status: 200, body: %{"id" => machine_id, "region" => region, "state" => state}}} ->
         status_map = %{
           status: state,

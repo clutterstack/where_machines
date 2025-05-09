@@ -48,7 +48,7 @@ defmodule WhereMachines.NodeObserver do
 
     # Check for DNS resolution - this can help diagnose cluster issues
     dns_check = resolve_internal_dns(app_name)
-    Logger.info("DNS resolution for #{app_name}.internal: #{inspect dns_check}")
+    Logger.debug("DNS resolution for #{app_name}.internal: #{inspect dns_check}")
 
     # Schedule next check
     Process.send_after(self(), :check_cluster_health, @check_interval)
@@ -61,7 +61,8 @@ defmodule WhereMachines.NodeObserver do
     dns_name = "#{app_name}.internal"
 
     case :inet_res.getbyname(String.to_charlist(dns_name), :aaaa) do
-      {:ok, {:hostent, _hostname, _aliases, :inet, _size, addresses}} ->
+      {:ok, {:hostent, _hostname, _aliases, address_family, _size, addresses}}
+        when address_family in [:inet, :inet6] ->
         {:ok, Enum.map(addresses, &:inet.ntoa/1)}
       error ->
         {:error, error}

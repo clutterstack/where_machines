@@ -31,6 +31,8 @@ defmodule WhereMachines.AutoSpawner do
     regions = Keyword.get(opts, :regions, @default_regions)
     enabled = Keyword.get(opts, :auto_start, true)
 
+    Logger.debug("AutoSpawner starting. Enabled? #{inspect enabled}")
+
     state = %{
       interval: interval,
       regions: regions,
@@ -112,6 +114,7 @@ defmodule WhereMachines.AutoSpawner do
   defp try_spawn_machine(region) do
     region_str = Atom.to_string(region)
     # We use "auto-spawner" as the id for all auto-spawned machines
+    Logger.debug("AutoSpawner is about to spawn a Machine in #{region_str}")
     MachineLauncher.maybe_spawn_useless_machine("auto-spawner", region_str)
   end
 

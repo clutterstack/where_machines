@@ -18,11 +18,10 @@ defmodule WhereMachines.Application do
       {Phoenix.PubSub, name: :where_pubsub},
       # Start MachineTracker to monitor useless_machine instances
       WhereMachines.MachineTracker,
-      WhereMachines.AutoSpawner,
+      {WhereMachines.AutoSpawner, Application.get_env(:where_machines, WhereMachines.AutoSpawner, [])},
       WhereMachines.NodeObserver,
       WhereMachinesWeb.Endpoint,
-      WhereMachinesWeb.APIEndpoint,
-      WhereMachines.ClusterState
+      WhereMachinesWeb.APIEndpoint
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
