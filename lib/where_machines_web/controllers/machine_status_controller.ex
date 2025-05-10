@@ -31,7 +31,7 @@ defmodule WhereMachinesWeb.APIController do
   end
 
   def update(conn, %{"machine_id" => machine_id}) do
-    Logger.debug("Received HTTP status update from Useless Machine for #{machine_id}. (Means it's stopping)")
+    Logger.info("Received HTTP status update from Useless Machine for #{machine_id}. (Means it's stopping)")
       Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_stopping, machine_id})
       conn
       |> put_status(:ok)

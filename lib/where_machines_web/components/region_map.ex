@@ -66,7 +66,7 @@ defmodule WhereMachinesWeb.RegionMap do
           stroke-width="1" />
 
       <%= for {x, y} <- coords(@regions) do %>
-        <circle cx={x} cy={y} r="5" fill="#e6bc2f" opacity="0.9" />
+        <circle cx={x} cy={y} r="6" fill="#ffdc66" opacity="0.9" />
       <% end %>
 
       <%= for {x, y} <- coords(@our_regions) do %>
@@ -77,7 +77,7 @@ defmodule WhereMachinesWeb.RegionMap do
           cy={y}
           stroke="none"
           fill="url(#blueRadial)">
-          <animate attributeName="r" values="6;8;6" dur="4s" repeatCount="indefinite" />
+          <animate attributeName="r" values="8;12;8" dur="3s" repeatCount="indefinite" />
         </circle>
 
       <% end %>

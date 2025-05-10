@@ -10,6 +10,19 @@ defmodule WhereMachinesWeb.WhereLive do
     if connected?(socket) do
       # Subscribe to machine status updates
       Phoenix.PubSub.subscribe(:where_pubsub, "machine_updates")
+      # Track this connection with Presence
+      WhereMachinesWeb.Presence.track(
+        self(),
+        "visitors",
+        socket.id,
+        %{
+          connected_at: DateTime.utc_now(),
+          region: fly_edge_region
+        }
+      )
+
+      # Notify AutoSpawner of new visitor
+      Phoenix.PubSub.broadcast(:where_pubsub, "visitor_events", {:visitor_connected, socket.id})
     end
 
     Logger.info("LiveView mounted in #{fly_edge_region}")
@@ -94,7 +107,7 @@ defmodule WhereMachinesWeb.WhereLive do
   #####################################################################
 
   def handle_info({:machine_ready, {machine_id, status_map}}, socket) do
-    Logger.debug("LiveView got :machine_ready via local PubSub for Machine #{machine_id} in #{status_map.region}")
+    Logger.debug("LiveView got :machine_ready for Machine #{machine_id} in #{status_map.region}")
 
     # The single-button version of the LiveView redirects to the new Machine, after making sure it's ours.
     # This is belt and braces, since the Useless Machine calls its requesting node back directly when it's ready

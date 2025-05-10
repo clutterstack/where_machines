@@ -307,7 +307,7 @@ end
   # When we hear a Machine is ready, update its state (insert if it's not already there)
   @impl true
   def handle_info({:machine_ready, {machine_id, status_map}}, state) do
-    Logger.debug("MachineTracker: :machine_ready for #{machine_id} from status controller via local PubSub")
+    Logger.debug("MachineTracker: :machine_ready for #{machine_id}")
     :ets.insert(@table_name, {machine_id, status_map})
     {:noreply, state}
   end
