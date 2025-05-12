@@ -39,8 +39,12 @@ defmodule WhereMachinesWeb.WhereLive do
       umachines: initial_machines,
       our_mach: %{},
       our_mach_state: nil,
-      page_title: "Where Machines"
-    )}
+      page_title: "Where Machines",
+      # Add timer state
+      timer_ref: nil,
+      current_timer_display: "0.0s",
+      active_timer_button: nil
+     )}
   end
 
   # bg-[1200px_auto]
@@ -102,6 +106,55 @@ defmodule WhereMachinesWeb.WhereLive do
     """
   end
 
+
+  # Handle timer-related messages
+
+  def handle_info({:start_machine_timer, button_id}, socket) do
+    # Start the display timer if in single mode
+    timer_ref = if socket.assigns.live_action == :single do
+      Process.send_after(self(), :timer_tick, 100)
+    else
+      nil
+    end
+
+    {:noreply, assign(socket,
+      timer_ref: timer_ref,
+      active_timer_button: button_id,
+      current_timer_display: "0.0s"
+    )}
+  end
+
+  def handle_info(:timer_tick, socket) do
+    # Get the active button from the component
+    send_update(WhereMachinesWeb.MachineLauncher,
+      id: "machine-launcher",
+      get_active_button: socket.assigns.active_timer_button
+    )
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:active_button_time, start_time}, socket) when is_number(start_time) do
+    elapsed_time = format_elapsed_time(start_time)
+
+    # Schedule next tick
+    timer_ref = Process.send_after(self(), :timer_tick, 100)
+
+    {:noreply, assign(socket,
+      current_timer_display: elapsed_time,
+      timer_ref: timer_ref
+    )}
+  end
+
+  def handle_info({:active_button_time, nil}, socket) do
+    # No active button, stop timer
+    if socket.assigns.timer_ref do
+      Process.cancel_timer(socket.assigns.timer_ref)
+    end
+
+    {:noreply, assign(socket, timer_ref: nil)}
+  end
+
   #####################################################################
   # Handle machine ready message from API controller via PubSub.
   #####################################################################
@@ -109,15 +162,21 @@ defmodule WhereMachinesWeb.WhereLive do
   def handle_info({:machine_ready, {machine_id, status_map}}, socket) do
     Logger.debug("LiveView got :machine_ready for Machine #{machine_id} in #{status_map.region}")
 
-    # The single-button version of the LiveView redirects to the new Machine, after making sure it's ours.
-    # This is belt and braces, since the Useless Machine calls its requesting node back directly when it's ready
-    if socket.assigns.live_action == :single do
-      Logger.debug("Checking if it's our Machine.")
-      our_mach = socket.assigns.our_mach
+    our_mach = socket.assigns.our_mach
 
-      Logger.debug("our_mach: #{inspect our_mach}; machine: #{machine_id}")
+    if Map.has_key?(our_mach, machine_id) do
+      # Stop the display timer
+      if socket.assigns.timer_ref do
+        Process.cancel_timer(socket.assigns.timer_ref)
+      end
 
-      if Map.has_key?(our_mach, machine_id) do
+      # Tell component to stop its timer and get elapsed time
+      send_update(WhereMachinesWeb.MachineLauncher,
+        id: "machine-launcher",
+        stop_timer_for: machine_id
+      )
+
+      if socket.assigns.live_action == :single do
         Logger.info("Redirecting in 500ms")
         Process.send_after(self(), {:redirect_to_machine, machine_id}, 500)
       end
@@ -127,6 +186,7 @@ defmodule WhereMachinesWeb.WhereLive do
       socket
       |> assign(:umachines, new_machines_assign(:update, {machine_id, status_map}, socket))
       |> assign(:our_mach_state, :listening)
+      |> assign(timer_ref: nil, active_timer_button: nil)
     }
   end
 
@@ -198,6 +258,15 @@ defmodule WhereMachinesWeb.WhereLive do
     }
   end
 
+  def handle_info({:stop_machine_timer, machine_id}, socket) do
+    # Send message to the launcher component to stop the timer
+    send_update(WhereMachinesWeb.MachineLauncher,
+      id: "machine-launcher",
+      stop_timer_for: machine_id
+    )
+    {:noreply, socket}
+  end
+
   def handle_info({:machine_timer_elapsed, {machine_id, elapsed_str}}, socket) do
     Logger.info("Machine #{machine_id} became ready in #{elapsed_str}")
     # You could store this information or display it if needed
@@ -207,6 +276,14 @@ defmodule WhereMachinesWeb.WhereLive do
   def handle_info(message, socket) do
     Logger.debug("MachineStatusLive ignoring message: #{inspect message}")
     {:noreply, socket}
+  end
+
+
+  # Timer formatting helper
+  defp format_elapsed_time(start_time) do
+    elapsed_ms = System.system_time(:millisecond) - start_time
+    elapsed_s = elapsed_ms / 1000
+    :io_lib.format("~.1fs", [elapsed_s]) |> to_string()
   end
 
 
