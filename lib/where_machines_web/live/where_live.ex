@@ -198,10 +198,17 @@ defmodule WhereMachinesWeb.WhereLive do
     }
   end
 
+  def handle_info({:machine_timer_elapsed, {machine_id, elapsed_str}}, socket) do
+    Logger.info("Machine #{machine_id} became ready in #{elapsed_str}")
+    # You could store this information or display it if needed
+    {:noreply, socket}
+  end
+
   def handle_info(message, socket) do
     Logger.debug("MachineStatusLive ignoring message: #{inspect message}")
     {:noreply, socket}
   end
+
 
   ################################################
   # Helpers to update machines assigns

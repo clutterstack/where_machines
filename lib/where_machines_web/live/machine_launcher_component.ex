@@ -37,6 +37,8 @@ defmodule WhereMachinesWeb.MachineLauncher do
         btn_class: assigns.variant == :single && @btn_class_single || @btn_class_multi,
         base_class: assigns.variant == :single && @base_class_single || @base_class_multi,
         our_mach_state: assigns.our_mach_state)
+      |> assign_new(:timer_ref, fn -> nil end)
+      |> assign_new(:current_timer_display, fn -> "0.0s" end)
       |> assign_new( # Only initialize buttons if not already set
         :buttons,
         fn ->
@@ -48,7 +50,11 @@ defmodule WhereMachinesWeb.MachineLauncher do
                 loading: nil,
                 failed: nil,
                 result: nil
-              }}}
+              },
+              # Add timer state to each button
+              start_time: nil,
+              elapsed_time: nil
+            }}
           end)
           # |> Enum.sort_by( fn {key, _val} -> key end)
         end)
@@ -91,8 +97,15 @@ defmodule WhereMachinesWeb.MachineLauncher do
             </div>
                       </div>
 
-          <%= for {_region, button} <- @buttons do %>
-                <div class="col-span-4 mt-4 font-mono text-xs text-zinc-200">{message(button.async)}</div>
+          <%= for {region, button} <- @buttons do %>
+                <div class="col-span-4 mt-4 font-mono text-xs text-zinc-200">
+                  {message(button.async)}
+                  <%= if should_show_timer?(button) do %>
+                    <span class="ml-2 text-amber-400 font-bold">
+                      {@current_timer_display}
+                    </span>
+                  <% end %>
+                </div>
           <% end %>
 
       <% else %>
@@ -129,13 +142,28 @@ defmodule WhereMachinesWeb.MachineLauncher do
   # </div>
 
 
+
   def handle_event("create_machine", %{"region" => region, "id" => button_id}, socket) do
     id_atom = String.to_existing_atom(button_id)
+    # Start the timer for this button
     updated_buttons = new_buttons_assign(id_atom, :loading, :waiting, socket.assigns.buttons)
+                    |> start_button_timer(id_atom)
+
+    # Start the display timer only for single variant
+    timer_ref = if socket.assigns.variant == :single do
+      start_display_timer()
+    else
+      nil
+    end
+
     {:noreply,
      socket
-     |> assign(buttons: updated_buttons)
-     |> start_async({:create_machine_task, id_atom}, fn -> MachineLauncher.maybe_spawn_useless_machine(id_atom, region) end)
+     |> assign(buttons: updated_buttons, timer_ref: timer_ref)
+     |> start_async({:create_machine_task, id_atom}, fn ->
+        # Get the start time for this button to pass to the spawn function
+        start_time = get_in(updated_buttons, [id_atom, :start_time])
+        MachineLauncher.maybe_spawn_useless_machine(id_atom, region, start_time)
+     end)
     }
   end
 
@@ -150,7 +178,6 @@ defmodule WhereMachinesWeb.MachineLauncher do
     updated_buttons = new_buttons_assign(button_id, :ok, data, socket.assigns.buttons)
     Logger.debug("MachineLauncher component sending :our_mach_created to parent: #{inspect {machine_id, status_map}}")
     Process.send(self(), {:our_mach_created, {machine_id, status_map}}, [])
-    # updated_machines = new_machines_assign(%{machine_id: machine_id, status_map: status_map}, socket)
     {:noreply,
       socket
       |> assign(buttons: updated_buttons)
@@ -223,7 +250,20 @@ defmodule WhereMachinesWeb.MachineLauncher do
   def handle_async({:wait_for_machine_task, mach_id, button_id}, {:ok, {:ok, %{status: :started}}}, socket) do
     Logger.debug("wait_for_machine_task returned {:ok, %{status: :started}}")
     Phoenix.PubSub.broadcast(:where_pubsub, "machine_updates", {:machine_started, mach_id})
+
+    # Calculate elapsed time when machine becomes ready
+    elapsed_ms = get_elapsed_time_ms(socket.assigns.buttons[button_id])
+    elapsed_str = format_ms_for_env(elapsed_ms)
+
     updated_buttons = new_buttons_assign(button_id, :started, mach_id, socket.assigns.buttons)
+                     |> stop_button_timer(button_id, elapsed_ms)
+
+    # Stop the display timer
+    socket = stop_display_timer(socket)
+
+    # Send the elapsed time to the parent
+    Process.send(self(), {:machine_timer_elapsed, {mach_id, elapsed_str}}, [])
+
     {:noreply,
     socket
     |> assign(buttons: updated_buttons)
@@ -271,6 +311,74 @@ defmodule WhereMachinesWeb.MachineLauncher do
     Logger.debug("maybe_reset_button about to return")
     {:ok, button_id}
   end
+
+  def handle_info(:timer_tick, socket) do
+    # Find the active button with a start_time
+    active_button = Enum.find(socket.assigns.buttons, fn {_id, button} ->
+      button.start_time && button.async.loading
+    end)
+
+    case active_button do
+      {_id, button} ->
+        elapsed_time = format_elapsed_time(button.start_time)
+        # Schedule the next tick
+        timer_ref = if socket.assigns.variant == :single do
+          Process.send_after(self(), :timer_tick, 100)
+        else
+          nil
+        end
+        {:noreply, assign(socket, current_timer_display: elapsed_time, timer_ref: timer_ref)}
+      _ ->
+        # No active timer, stop the ticker
+        {:noreply, stop_display_timer(socket)}
+    end
+  end
+
+  # Timer management helpers
+  defp start_button_timer(buttons, button_id) do
+    Keyword.update!(buttons, button_id, fn button ->
+      %{button | start_time: System.system_time(:millisecond)}
+    end)
+  end
+
+  defp stop_button_timer(buttons, button_id, elapsed_ms) do
+    Keyword.update!(buttons, button_id, fn button ->
+      %{button | elapsed_time: elapsed_ms}
+    end)
+  end
+
+  defp get_elapsed_time_ms(%{start_time: nil}), do: 0
+  defp get_elapsed_time_ms(%{start_time: start_time}) do
+    System.system_time(:millisecond) - start_time
+  end
+
+  defp format_elapsed_time(nil), do: "0.0s"
+  defp format_elapsed_time(start_time) do
+    elapsed_ms = System.system_time(:millisecond) - start_time
+    elapsed_s = elapsed_ms / 1000
+    :io_lib.format("~.1fs", [elapsed_s]) |> to_string()
+  end
+
+  defp format_ms_for_env(elapsed_ms) do
+    "#{elapsed_ms}ms"
+  end
+
+  # Display timer management
+  defp start_display_timer do
+    Process.send_after(self(), :timer_tick, 100)
+  end
+
+  defp stop_display_timer(socket) do
+    if socket.assigns.timer_ref do
+      Process.cancel_timer(socket.assigns.timer_ref)
+    end
+    assign(socket, timer_ref: nil)
+  end
+
+  defp should_show_timer?(button) do
+    button.start_time && button.async.loading
+  end
+
 
   #####################################################################
   # Update individual button entries in the buttons assign

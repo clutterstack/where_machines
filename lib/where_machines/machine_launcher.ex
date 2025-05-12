@@ -7,7 +7,7 @@ defmodule WhereMachines.MachineLauncher do
   @mach_limit 8
   @app_name "useless-machine"
 
-  def maybe_spawn_useless_machine(id, region \\ "") do
+  def maybe_spawn_useless_machine(id, region \\ "", start_time \\ nil) do
     region = validate_region(region)
     # If tracker says we have capacity, verify with ETS if fresh or API if not
     case MachineTracker.get_fresh_count() do
@@ -15,7 +15,7 @@ defmodule WhereMachines.MachineLauncher do
       {:ok, api_count, _} -> Logger.debug("MachineLauncher got count #{api_count} from tracker")
           if api_count < @mach_limit do
             Logger.debug("Tracker says we're below our limit; creating a new Machine")
-            spawn_machine(id, region)
+            spawn_machine(id, region, start_time)
           else
             Logger.info("Machine limit reached; not creating a new one.")
             {:error, %{requestor_id: id, reason: :capacity, message: "Reached capacity; try again later."}}
@@ -28,13 +28,19 @@ defmodule WhereMachines.MachineLauncher do
 
   end
 
-  defp spawn_machine(id, requested_region) do
+  defp spawn_machine(id, requested_region, start_time) do
     client = Clutterfly.FlyAPI.new(receive_timeout: 30_000, api_token: System.get_env("USELESS_API_TOKEN"))
 
     # Determine source based on id
     source = if id == "auto-spawner", do: :auto, else: :manual
 
-    case Clutterfly.FlyAPI.create_machine(client, @app_name, Enum.into(%{region: requested_region}, useless_params(source))) do
+    # Calculate elapsed time and add to params
+    elapsed_str = if start_time, do: "#{System.system_time(:millisecond) - start_time}ms", else: "unknown"
+
+    machine_params = useless_params(source)
+                    |> put_in([:config, :env, "MACHINE_START_TIME"], elapsed_str)
+
+    case Clutterfly.FlyAPI.create_machine(client, @app_name, Enum.into(%{region: requested_region}, machine_params)) do
       {:ok, %{status: 200, body: %{"id" => machine_id, "region" => region, "state" => state}}} ->
         status_map = %{
           status: state,
