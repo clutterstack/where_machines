@@ -7,7 +7,7 @@ defmodule WhereMachines.AutoSpawner do
   @jitter_factor 0.2        # 20% jitter
   @default_regions [:ams, :ord, :syd, :sin, :lax, :yyz, :lhr, :fra]
   @pubsub_topic "machine_updates"
-  @reconciliation_interval 30_000  # Check every 5 minutes
+  @reconciliation_interval 30_000  # Check every 30 seconds
   @inactivity_timeout 60_000  # 1 minute of no activity
 
 
@@ -32,17 +32,15 @@ defmodule WhereMachines.AutoSpawner do
   def init(opts) do
     interval = Keyword.get(opts, :interval, @default_interval)
     regions = Keyword.get(opts, :regions, @default_regions)
-    # enabled = Keyword.get(opts, :auto_start, true)
-      # Default to disabled until we receive a visitor
+    # Default to disabled until we receive a visitor
     enabled = false
 
-    # Subscribe to visitor events
-    Phoenix.PubSub.subscribe(:where_pubsub, "visitor_events")
     # Subscribe to presence changes
     Phoenix.PubSub.subscribe(:where_pubsub, "presence_diff:visitors")
+    Phoenix.PubSub.subscribe(:where_pubsub, "presence_state:visitors")
+
     Logger.debug("AutoSpawner starting. Waiting for visitors.")
     Logger.debug("AutoSpawner starting. Enabled? #{inspect enabled}")
-    Phoenix.PubSub.subscribe(:where_pubsub, "presence_state:visitors")
 
     state = %{
       interval: interval,
@@ -82,127 +80,110 @@ defmodule WhereMachines.AutoSpawner do
     }, state}
   end
 
-  def handle_info({:visitor_connected, visitor_id}, state) do
-    Logger.info("New visitor connected: #{visitor_id}. Starting AutoSpawner.")
+  # Removed the custom :visitor_connected handler as we're using Phoenix Presence
 
-    # If we're not already enabled, enable and spawn immediately
-    new_state = if !state.enabled do
-      # Schedule immediate spawn
-      Process.send(self(), :spawn_machine, [])
-      # Then schedule regular spawns
-      schedule_next_spawn(state.interval)
 
-      %{state | enabled: true, visitor_count: state.visitor_count + 1}
-    else
-      %{state | visitor_count: state.visitor_count + 1}
+  # Add a handler for full presence state updates
+  def handle_info(%{event: "presence_state", state: presence_state}, state) do
+    visitor_count = map_size(presence_state) |> dbg
+
+    new_state = cond do
+      # First visitor arrives
+      visitor_count > 0 and not state.enabled ->
+        Logger.info("Visitors present (#{visitor_count}). Enabling AutoSpawner.")
+        Process.send(self(), :spawn_machine, [])
+        schedule_next_spawn(state.interval)
+        %{state | enabled: true, visitors: presence_state}
+
+      # Last visitor leaves
+      visitor_count == 0 and state.enabled ->
+        Logger.info("No more visitors. Disabling AutoSpawner.")
+        %{state | enabled: false, visitors: %{}}
+
+      # Just update the presence state
+      true ->
+        %{state | visitors: presence_state}
     end
 
     {:noreply, new_state}
   end
 
+  # Update the diff handler to update the presence map correctly
+  def handle_info(%{event: "presence_diff", joins: joins, leaves: leaves}, state) do
+    Logger.debug("Visitor presence changed: #{map_size(joins)} joins and #{map_size(leaves)} leaves")
 
-# Add a handler for full presence state updates
-def handle_info(%{event: "presence_state", state: presence_state}, state) do
-  visitor_count = map_size(presence_state) |> dbg
+    # Update presence map based on joins and leaves
+    visitors = state.visitors
+               |> Map.merge(joins)
+               |> Map.drop(Map.keys(leaves))
 
-  new_state = cond do
-    # First visitor arrives
-    visitor_count > 0 and not state.enabled ->
-      Logger.info("Visitors present (#{visitor_count}). Enabling AutoSpawner.")
-      Process.send(self(), :spawn_machine, [])
-      schedule_next_spawn(state.interval)
-      %{state | enabled: true, visitors: presence_state}
+    visitor_count = map_size(visitors)
 
-    # Last visitor leaves
-    visitor_count == 0 and state.enabled ->
-      Logger.info("No more visitors. Disabling AutoSpawner.")
-      %{state | enabled: false, visitors: %{}}
+    # Enable/disable based on visitor count
+    new_state = cond do
+      # First visitor arrives
+      visitor_count > 0 and not state.enabled ->
+        Logger.info("Visitors present (#{visitor_count}). Enabling AutoSpawner.")
+        Process.send(self(), :spawn_machine, [])
+        schedule_next_spawn(state.interval)
+        %{state | enabled: true, visitors: visitors}
 
-    # Just update the presence state
-    true ->
-      %{state | visitors: presence_state}
+      # Last visitor leaves
+      visitor_count == 0 and state.enabled ->
+        Logger.info("No more visitors. Disabling AutoSpawner.")
+        %{state | enabled: false, visitors: %{}}
+
+      # Just update the presence map
+      true ->
+        %{state | visitors: visitors}
+    end
+
+     # Cancel existing timer if there is one
+     if state.activity_timer_ref, do: Process.cancel_timer(state.activity_timer_ref)
+
+     # Set up new timer only if we're enabled and have visitors
+     activity_timer_ref = if visitor_count > 0 do
+       Process.send_after(self(), :check_inactivity, @inactivity_timeout)
+     else
+       nil
+     end
+
+     new_state = %{new_state |
+       last_activity_time: DateTime.utc_now(),
+       activity_timer_ref: activity_timer_ref
+     }
+
+    {:noreply, new_state}
   end
 
-  {:noreply, new_state}
-end
+  def handle_info(:reconcile_presence, state) do
+    # Request current presence state from the tracker
+    # This depends on how your presence system is implemented
+    # Here's a generic approach:
+    current_presence = WhereMachinesWeb.Presence.list("visitors")
+    visitor_count = map_size(current_presence)
 
- # Update the diff handler to update the presence map correctly
-def handle_info(%{event: "presence_diff", joins: joins, leaves: leaves}, state) do
-  Logger.debug("Visitor presence changed: #{map_size(joins)} joins and #{map_size(leaves)} leaves")
+    # Update state based on actual presence
+    new_state = cond do
+      visitor_count > 0 and not state.enabled ->
+        Logger.info("Reconciliation: Visitors present (#{visitor_count}). Enabling AutoSpawner.")
+        Process.send(self(), :spawn_machine, [])
+        schedule_next_spawn(state.interval)
+        %{state | enabled: true, visitors: current_presence}
 
-  # Update presence map based on joins and leaves
-  visitors = state.visitors
-             |> Map.merge(joins)
-             |> Map.drop(Map.keys(leaves))
+      visitor_count == 0 and state.enabled ->
+        Logger.info("Reconciliation: No visitors found. Disabling AutoSpawner.")
+        %{state | enabled: false, visitors: %{}}
 
-  visitor_count = map_size(visitors)
+      true ->
+        %{state | visitors: current_presence}
+    end
 
-  # Enable/disable based on visitor count
-  new_state = cond do
-    # First visitor arrives
-    visitor_count > 0 and not state.enabled ->
-      Logger.info("Visitors present (#{visitor_count}). Enabling AutoSpawner.")
-      Process.send(self(), :spawn_machine, [])
-      schedule_next_spawn(state.interval)
-      %{state | enabled: true, visitors: visitors}
+    # Schedule the next reconciliation
+    schedule_reconciliation()
 
-    # Last visitor leaves
-    visitor_count == 0 and state.enabled ->
-      Logger.info("No more visitors. Disabling AutoSpawner.")
-      %{state | enabled: false, visitors: %{}}
-
-    # Just update the presence map
-    true ->
-      %{state | visitors: visitors}
+    {:noreply, new_state}
   end
-
-   # Cancel existing timer if there is one
-   if state.activity_timer_ref, do: Process.cancel_timer(state.activity_timer_ref)
-
-   # Set up new timer only if we're enabled and have visitors
-   activity_timer_ref = if visitor_count > 0 do
-     Process.send_after(self(), :check_inactivity, @inactivity_timeout)
-   else
-     nil
-   end
-
-   new_state = %{new_state |
-     last_activity_time: DateTime.utc_now(),
-     activity_timer_ref: activity_timer_ref
-   }
-
-  {:noreply, new_state}
-
- end
-
- def handle_info(:reconcile_presence, state) do
-  # Request current presence state from the tracker
-  # This depends on how your presence system is implemented
-  # Here's a generic approach:
-  current_presence = WhereMachinesWeb.Presence.list("visitors")
-  visitor_count = map_size(current_presence)
-
-  # Update state based on actual presence
-  new_state = cond do
-    visitor_count > 0 and not state.enabled ->
-      Logger.info("Reconciliation: Visitors present (#{visitor_count}). Enabling AutoSpawner.")
-      Process.send(self(), :spawn_machine, [])
-      schedule_next_spawn(state.interval)
-      %{state | enabled: true, visitors: current_presence}
-
-    visitor_count == 0 and state.enabled ->
-      Logger.info("Reconciliation: No visitors found. Disabling AutoSpawner.")
-      %{state | enabled: false, visitors: %{}}
-
-    true ->
-      %{state | visitors: current_presence}
-  end
-
-  # Schedule the next reconciliation
-  schedule_reconciliation()
-
-  {:noreply, new_state}
-end
 
 
   def handle_info(:spawn_machine, %{enabled: false} = state) do
@@ -259,12 +240,13 @@ end
   end
 
 
-defp schedule_reconciliation do
-  Process.send_after(self(), :reconcile_presence, @reconciliation_interval)
-end
+  defp schedule_reconciliation do
+    Process.send_after(self(), :reconcile_presence, @reconciliation_interval)
+  end
 
   # Private helpers
   defp schedule_next_spawn(interval) do
+    Logger.info("Scheduling next autospawn in #{interval} ms")
     Process.send_after(self(), :spawn_machine, interval)
   end
 

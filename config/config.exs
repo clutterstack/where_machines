@@ -12,7 +12,7 @@ config :where_machines,
   generators: [timestamp_type: :utc_datetime]
 
 config :where_machines, WhereMachines.AutoSpawner,
-    interval: 65_000,  # ms between spawns
+    interval: 7_200_000,  # ms between spawns
     regions: [:ams, :ord, :syd, :nrt, :dfw], # Subset of regions to use
     auto_start: false   # Start spawning on application boot
 
