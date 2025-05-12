@@ -312,7 +312,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
   def handle_info(:timer_tick, socket) do
     # Find the active button with a start_time
     active_button = Enum.find(socket.assigns.buttons, fn {_id, button} ->
-      button.start_time && not button.elapsed_time
+      button.start_time != nil && button.elapsed_time == nil
     end)
 
     case active_button do
@@ -382,7 +382,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
   end
 
   defp should_show_timer?(button) do
-    button.start_time && not button.elapsed_time
+    button.start_time != nil && button.elapsed_time == nil
   end
 
 
