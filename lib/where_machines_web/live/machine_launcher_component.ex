@@ -143,6 +143,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
 
 
 
+
   def handle_event("create_machine", %{"region" => region, "id" => button_id}, socket) do
     id_atom = String.to_existing_atom(button_id)
     # Start the timer for this button
@@ -170,6 +171,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
   #####
   # Async task return handling
   ######
+
 
   def handle_async({:create_machine_task, button_id}, {:ok, {:ok, %{requestor_id: _req_id, machine_id: machine_id, status_map: status_map}}}, socket) do
     Logger.info("✅ Machine #{machine_id} created in #{status_map.region}.")
@@ -271,6 +273,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
      }
   end
 
+
   def handle_async({:wait_for_machine_task, mach_id, button_id}, {:ok, {:error, %{stuff: %Req.TransportError{reason: :timeout}}}}, socket) do
     Logger.error("❌ Wait for machine start timed out (Machine #{mach_id})")
     updated_buttons = new_buttons_assign(button_id, :failed, :timeout, socket.assigns.buttons)
@@ -305,17 +308,11 @@ defmodule WhereMachinesWeb.MachineLauncher do
     {:noreply, socket}
   end
 
-  # For async :reset_button_task
-  defp maybe_reset_button(button_id, ms) do
-    Process.sleep(ms)
-    Logger.debug("maybe_reset_button about to return")
-    {:ok, button_id}
-  end
 
   def handle_info(:timer_tick, socket) do
     # Find the active button with a start_time
     active_button = Enum.find(socket.assigns.buttons, fn {_id, button} ->
-      button.start_time && button.async.loading
+      button.start_time && not button.elapsed_time
     end)
 
     case active_button do
@@ -332,6 +329,15 @@ defmodule WhereMachinesWeb.MachineLauncher do
         # No active timer, stop the ticker
         {:noreply, stop_display_timer(socket)}
     end
+  end
+
+
+
+  # For async :reset_button_task
+  defp maybe_reset_button(button_id, ms) do
+    Process.sleep(ms)
+    Logger.debug("maybe_reset_button about to return")
+    {:ok, button_id}
   end
 
   # Timer management helpers
@@ -376,7 +382,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
   end
 
   defp should_show_timer?(button) do
-    button.start_time && button.async.loading
+    button.start_time && not button.elapsed_time
   end
 
 
