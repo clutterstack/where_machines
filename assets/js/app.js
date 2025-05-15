@@ -25,6 +25,22 @@ import topbar from "../vendor/topbar"
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
 let Hooks = {}
+
+Hooks.RegionMap = {
+  mounted() {
+    this.el.addEventListener('click', (event) => {
+      if (event.target.matches('.region-group circle')) {
+        const group = event.target.closest('.region-group');
+        // Toggle the active class for tap/click
+        document.querySelectorAll('.region-group').forEach(g => {
+          if (g !== group) g.classList.remove('active');
+        });
+        group.classList.toggle('active');
+      }
+    });
+  }
+}
+
 Hooks.CountUpTimer = {
   mounted() {
     this.running = false;

@@ -23,27 +23,43 @@ defmodule WhereMachinesWeb.RegionMap do
   def world_map_svg(assigns) do
     # "0 0 800 391"
     ~H"""
-    <svg viewBox={@viewbox} stroke-linecap="round" stroke-linejoin="round"  xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox={@viewbox} stroke-linecap="round" stroke-linejoin="round"  xmlns="http://www.w3.org/2000/svg" phx-hook="RegionMap" id="region-map">
       <defs>
-        <filter id="goldGlow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="4" result="blur"/>
-          <feFlood flood-color="#EAD588" flood-opacity="0.7" result="glowColor"/>
-          <feComposite in="glowColor" in2="blur" operator="in" result="softGlow"/>
-          <feComposite in="softGlow" in2="SourceGraphic" operator="over"/>
-        </filter>
-        <!-- Radial gradient for our blue markers -->
+        <!-- Radial gradient for blue markers -->
         <radialGradient id="blueRadial" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
           <stop offset="60%" stop-color="#77b5fe" stop-opacity="1"/>
           <stop offset="80%" stop-color="#77b5fe" stop-opacity="0.6"/>
           <stop offset="100%" stop-color="#77b5fe" stop-opacity="0.2"/>
         </radialGradient>
-        <!-- Gradient for metallic effect -->
-        <linearGradient id="platinumFill" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#E5E4E240"/>
-            <stop offset="50%" stop-color="#A9A8A780"/>
-            <stop offset="100%" stop-color="#33333380"/>
-        </linearGradient>
       </defs>
+
+      <style>
+        circle {
+          pointer-events: none;
+        }
+        .region-group text {
+          opacity: 0;
+          stroke: #F3D673;
+          transition: opacity 0.2s;
+          pointer-events: none;
+          user-select: none;
+        }
+        .region-group:hover text,
+        .region-group.active text {
+          opacity: 1;
+        }
+        .region-group circle {
+          cursor: pointer;
+          stroke: transparent;
+          fill: #DAA520;
+          stroke-width: 6;
+          pointer-events: all;
+        }
+        .region-group:hover circle {
+          stroke: #DAA520;
+        }
+      </style>
+
       <g id="ne_110m_ocean">
         <path d="M 508.86 108.99 503.48 101.62 513.48 96.21 517.58 96.64 517.57 100.18 511.51 101.61 513.81 104.89 521.33 109.73 517.3 109.89 519.31 118.56 512.7 118.77 509.06 117.19 508.86 108.99 Z"
           stroke="#DAA520"
@@ -65,9 +81,12 @@ defmodule WhereMachinesWeb.RegionMap do
       <path d={@btmpath} stroke="#DAA520"
           stroke-width="1" />
 
-      <%= for {x, y} <- all_svg_coords() do %>
-        <circle cx={x} cy={y} r="3" stroke="#aaaaaa" fill="none" opacity="0.9" />
-      <% end %>
+       <%= for {region, {x, y}} <- all_regions_with_coords() do %>
+      <g class="region-group" id={"region-#{region}"}>
+        <circle cx={x} cy={y} r="4" opacity="0.9" />
+        <text x={x} y={y - 8} text-anchor="middle" font-size="20" fill="#DAA520"><%= region %></text>
+      </g>
+    <% end %>
 
       <%= for {x, y} <- coords(@regions) do %>
         <circle cx={x} cy={y} r="6" fill="#ffdc66" opacity="0.9" />
@@ -112,6 +131,12 @@ defmodule WhereMachinesWeb.RegionMap do
       # latlong_to_svg({long, lat}, bbox)
       point = wgs84_to_svg({long, lat}, bbox) #|> IO.inspect(label: "transformed to point")
       point
+  end
+
+  def all_regions_with_coords() do
+    for {city, coords} <- cities() do
+      {city, wgs84_to_svg(coords, @bbox)}
+    end
   end
 
   def all_svg_coords() do

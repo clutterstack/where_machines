@@ -36,7 +36,7 @@ defmodule WhereMachines.CityData do
     nrt: {140,36},
     yyz: {-80,44},
     waw: {21,52},
-    unknown: {0,0}
+    unknown: {-181,0}
     }
     @short %{
       ams: "Amsterdam",
