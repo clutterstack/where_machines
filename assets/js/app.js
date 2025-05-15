@@ -23,9 +23,65 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+
+let Hooks = {}
+Hooks.CountUpTimer = {
+  mounted() {
+    this.running = false;
+    this.elapsed = 0;
+    
+    this.handleEvent("timer-start", () => {
+      this.start();
+    });
+    
+    this.handleEvent("timer-stop", () => {
+      this.stop();
+    });
+    
+    this.handleEvent("timer-reset", () => {
+      this.reset();
+    });
+  },
+  
+  start() {
+    if (!this.running) {
+      this.running = true;
+      this.startTime = Date.now() - (this.elapsed * 1000);
+      this.timer = setInterval(() => this.update(), 100);
+    }
+  },
+  
+  stop() {
+    this.running = false;
+    clearInterval(this.timer);
+  },
+  
+  reset() {
+    this.stop();
+    this.elapsed = 0.0;
+    this.update();
+  },
+  
+  update() {
+    if (this.running) {
+      this.elapsed = Date.now() - this.startTime;
+    }
+    const minutes = Math.floor(this.elapsed / 60000);
+    const seconds = Math.floor((this.elapsed % 60000) / 1000);
+    const tenths = Math.floor((this.elapsed % 1000) / 100);
+    this.el.innerText = `${minutes}:${seconds.toString().padStart(2, '0')}.${tenths}`;
+  },
+  
+  destroyed() {
+    clearInterval(this.timer);
+  }
+}
+
+
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken}
+  params: {_csrf_token: csrfToken},
+  hooks: Hooks
 })
 
 // Show progress bar on live navigation and form submits

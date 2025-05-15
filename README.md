@@ -1,5 +1,14 @@
 # WhereMachines
 
+WhereMachines is a Phoenix LiveView application that provides a button to launch small virtual machines of no practical use on the cloud compute platform [Fly.io](https://fly.io). Its companion project is UselessMachine, a Phoenix LiveView application of no practical use that's easily launched in a virtual machine on Fly.io.
+
+## Why?
+
+I wanted to exercise a bunch of Fly.io features in a learning project. I was inspired by [Where Durable Objects Live](https://where.durableobjects.live/), a much more ambitious project. When 
+you visit that site, it triggers the creation of a short-lived Cloudflare Durable Object. 
+
+
+
 A LiveView application ...
 
 

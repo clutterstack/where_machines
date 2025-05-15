@@ -37,6 +37,7 @@ defmodule WhereMachinesWeb.MachineLauncher do
         btn_class: assigns.variant == :single && @btn_class_single || @btn_class_multi,
         base_class: assigns.variant == :single && @base_class_single || @base_class_multi,
         our_mach_state: assigns.our_mach_state)
+      |> assign_new(:start_time, fn -> "0.0s" end)
       |> assign_new( # Only initialize buttons if not already set
         :buttons,
         fn ->
@@ -92,7 +93,15 @@ defmodule WhereMachinesWeb.MachineLauncher do
                       </div>
 
           <%= for {_region, button} <- @buttons do %>
-                <div class="col-span-4 mt-4 font-mono text-xs text-zinc-200">{message(button.async)}</div>
+            <div class="col-span-4 mt-4 font-mono text-xs text-zinc-200">
+              {message(button.async)}
+              <span
+                    id="countup-timer"
+                    phx-hook="CountUpTimer"
+                    data-start-time={@start_time}
+                    class="ml-2 text-amber-400 font-bold"
+              ></span>
+            </div>
           <% end %>
 
       <% else %>
@@ -135,8 +144,13 @@ defmodule WhereMachinesWeb.MachineLauncher do
     {:noreply,
      socket
      |> assign(buttons: updated_buttons)
+     |> push_event("timer-start", %{})
      |> start_async({:create_machine_task, id_atom}, fn -> MachineLauncher.maybe_spawn_useless_machine(id_atom, region) end)
     }
+  end
+
+  def handle_event("stop_timer", _params, socket) do
+    {:noreply, push_event(socket, "timer-stop", %{})}
   end
 
   #####

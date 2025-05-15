@@ -65,8 +65,8 @@ defmodule WhereMachines.MachineParams do
         # image: "registry.fly.io/useless-machine:what-on-earth",
         # image: "registry.fly.io/useless-machine:timeout-conf",
         # image: "registry.fly.io/useless-machine:status-fallback",
-        image: "registry.fly.io/useless-machine:new-text",
-
+        # image: "registry.fly.io/useless-machine:new-text",
+        image: "registry.fly.io/useless-machine:affinity-fix",
 
         auto_destroy: true,
         restart: %{

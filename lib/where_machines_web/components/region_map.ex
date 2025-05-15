@@ -65,6 +65,10 @@ defmodule WhereMachinesWeb.RegionMap do
       <path d={@btmpath} stroke="#DAA520"
           stroke-width="1" />
 
+      <%= for {x, y} <- all_svg_coords() do %>
+        <circle cx={x} cy={y} r="3" stroke="#aaaaaa" fill="none" opacity="0.9" />
+      <% end %>
+
       <%= for {x, y} <- coords(@regions) do %>
         <circle cx={x} cy={y} r="6" fill="#ffdc66" opacity="0.9" />
       <% end %>
@@ -108,6 +112,12 @@ defmodule WhereMachinesWeb.RegionMap do
       # latlong_to_svg({long, lat}, bbox)
       point = wgs84_to_svg({long, lat}, bbox) #|> IO.inspect(label: "transformed to point")
       point
+  end
+
+  def all_svg_coords() do
+    for {city, coords} <- cities(), into: %{} do
+      wgs84_to_svg(coords, @bbox)
+    end
   end
 
   @doc """

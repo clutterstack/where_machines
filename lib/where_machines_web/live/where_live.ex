@@ -118,6 +118,7 @@ defmodule WhereMachinesWeb.WhereLive do
       Logger.debug("our_mach: #{inspect our_mach}; machine: #{machine_id}")
 
       if Map.has_key?(our_mach, machine_id) do
+        push_event(socket, "timer-stop", %{})
         Logger.info("Redirecting in 500ms")
         Process.send_after(self(), {:redirect_to_machine, machine_id}, 500)
       end
