@@ -21,6 +21,10 @@ defmodule WhereMachinesWeb.WhereLive do
         }
       )
 
+      # Get a fresh count of machines, which will trigger an API refresh if needed
+      # But won't if it's been recently refreshed
+      MachineTracker.get_fresh_count()
+
       # Notify AutoSpawner of new visitor
       Phoenix.PubSub.broadcast(:where_pubsub, "visitor_events", {:visitor_connected, socket.id})
     end

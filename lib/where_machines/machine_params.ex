@@ -25,7 +25,7 @@ defmodule WhereMachines.MachineParams do
         guest: %{
           cpu_kind: "shared",
           cpus: 1,
-          memory_mb: 1024
+          memory_mb: 512
         },
         services: [
           %{
@@ -66,7 +66,7 @@ defmodule WhereMachines.MachineParams do
         # image: "registry.fly.io/useless-machine:timeout-conf",
         # image: "registry.fly.io/useless-machine:status-fallback",
         # image: "registry.fly.io/useless-machine:new-text",
-        image: "registry.fly.io/useless-machine:affinity-fix",
+        image: "registry.fly.io/useless-machine:affinity-fix2",
 
         auto_destroy: true,
         restart: %{

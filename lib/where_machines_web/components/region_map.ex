@@ -18,6 +18,9 @@ defmodule WhereMachinesWeb.RegionMap do
   attr :viewbox, :string, default: "#{@minx} #{@miny} #{@w} #{@h}"
   attr :toppath, :string, default: "M #{@minx + 1} #{@miny + 0.5} H #{@w - 0.5}"
   attr :btmpath, :string, default: "M #{@minx + 1} #{@miny + @h - 1} H #{@w - 0.5}"
+  attr :muted, :string, default: "#DAA520"
+  attr :dull, :string, default: "#add3ff" #"#b58b22"
+  attr :bright, :string, default: "#ffdc66"
 
   # Render the world map SVG
   def world_map_svg(assigns) do
@@ -39,7 +42,8 @@ defmodule WhereMachinesWeb.RegionMap do
         }
         .region-group text {
           opacity: 0;
-          stroke: #F3D673;
+          stroke: <%= @bright %>;
+          fill: <%= @bright %>;
           transition: opacity 0.2s;
           pointer-events: none;
           user-select: none;
@@ -49,14 +53,14 @@ defmodule WhereMachinesWeb.RegionMap do
           opacity: 1;
         }
         .region-group circle {
-          cursor: pointer;
           stroke: transparent;
-          fill: #DAA520;
+          fill: <%= @dull %>;
           stroke-width: 6;
           pointer-events: all;
         }
         .region-group:hover circle {
-          stroke: #DAA520;
+          stroke: <%= @bright %>;
+          fill: <%= @bright %>;
         }
       </style>
 
@@ -81,12 +85,12 @@ defmodule WhereMachinesWeb.RegionMap do
       <path d={@btmpath} stroke="#DAA520"
           stroke-width="1" />
 
-       <%= for {region, {x, y}} <- all_regions_with_coords() do %>
-      <g class="region-group" id={"region-#{region}"}>
-        <circle cx={x} cy={y} r="4" opacity="0.9" />
-        <text x={x} y={y - 8} text-anchor="middle" font-size="20" fill="#DAA520"><%= region %></text>
-      </g>
-    <% end %>
+      <%= for {region, {x, y}} <- all_regions_with_coords() do %>
+        <g class="region-group" id={"region-#{region}"}>
+          <circle cx={x} cy={y} r="4" opacity="0.9" />
+          <text x={x} y={y - 8} text-anchor="middle" font-size="20" ><%= region %></text>
+        </g>
+      <% end %>
 
       <%= for {x, y} <- coords(@regions) do %>
         <circle cx={x} cy={y} r="6" fill="#ffdc66" opacity="0.9" />
