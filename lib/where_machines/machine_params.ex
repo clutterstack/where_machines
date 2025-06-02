@@ -6,7 +6,7 @@ defmodule WhereMachines.MachineParams do
      # Set timeout based on source
     timeout = case source do
       :auto -> "60000"  # for auto-spawned
-      :manual -> "60000"  # for manually spawned
+      :manual -> "600000"  # for manually spawned
     end
 
     %{

@@ -55,7 +55,7 @@ defmodule WhereMachinesWeb.RegionMap do
         .region-group circle {
           stroke: transparent;
           fill: <%= @dull %>;
-          stroke-width: 6;
+          stroke-width: 8;
           pointer-events: all;
         }
         .region-group:hover circle {
@@ -87,7 +87,7 @@ defmodule WhereMachinesWeb.RegionMap do
 
       <%= for {region, {x, y}} <- all_regions_with_coords() do %>
         <g class="region-group" id={"region-#{region}"}>
-          <circle cx={x} cy={y} r="4" opacity="0.9" />
+          <circle cx={x} cy={y} r="2" opacity="0.9" />
           <text x={x} y={y - 8} text-anchor="middle" font-size="20" ><%= region %></text>
         </g>
       <% end %>

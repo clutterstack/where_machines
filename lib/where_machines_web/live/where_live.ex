@@ -86,7 +86,7 @@ defmodule WhereMachinesWeb.WhereLive do
         <!-- Overlay text -->
         <div class="font-mono text-xs text-zinc-200 self-start col-span-4 mt-4">
           Your Fly.io edge region is <%= CityData.short(@fly_edge_region) %><br>
-          There are Useless Machines in: <%= Enum.join(active_regions(@umachines), " ") %>
+          There are Useless Machines in: <%= active_regions_string(@umachines) %>
         </div>
 
         <div class="col-start-1 col-span-4 rounded-lg panel">
@@ -232,6 +232,14 @@ defmodule WhereMachinesWeb.WhereLive do
 
   defp active_regions(machines) do
     for {_key, %{region: region}} <- machines, uniq: true, do: region
+  end
+
+  defp active_regions_string(machines) do
+    active_regions(machines) |> dbg
+    cond do
+      active_regions(machines) == [] -> "Nowhere"
+      true -> Enum.join(active_regions(machines), " ")
+    end
   end
 
   defp regions_for_action(action_atom) do
