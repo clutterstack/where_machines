@@ -1,5 +1,7 @@
 # WhereMachines
 
+This repo is public for purposes of curiosity. It's not intended to be deployed as-is.
+
 WhereMachines is a Phoenix LiveView application that provides a button to launch small virtual machines of no practical use on the cloud compute platform [Fly.io](https://fly.io). Its companion project is [UselessMachine](https://github.com/clutterstack/useless_machine), a Phoenix LiveView application of no practical use that's easily launched in a virtual machine on Fly.io.
 
 ## Why?
@@ -21,7 +23,7 @@ The Useless Machine shows some content to the visitor that created it, then shut
 * private API endpoints with IPv6 private networking (WireGuard)
 * Erlang clustering over 6PN (with DNSCluster) and PubSub for passing messages to components about the status of Useless Machine VMs
 * a [Req-based API client for Fly Machines](https://github.com/clutterstack/clutterfly), to launch new Machines and query the API for current Machine status
-* launching the Machine with a set of parameters
+* launching the Machine with a set of parameters, including a ref for a Docker image for the Useless Machine app in the same Fly.io organization 
 * the tracker module
 * the launcher live component
 * per-ip rate limiting (no good against a DDoS attack but basic guardrail against a user reloading the liveview)
