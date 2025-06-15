@@ -1,7 +1,7 @@
 # Stuff 
 **/.DS_Store
 lib/useless_machine/release.ex
-/rel/
+/rel/**
 !/rel/env.sh.eex
 .github/
 .dockerignore
