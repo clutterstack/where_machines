@@ -2,6 +2,7 @@
 **/.DS_Store
 lib/useless_machine/release.ex
 /rel/
+!/rel/env.sh.eex
 .github/
 .dockerignore
 fly.toml
